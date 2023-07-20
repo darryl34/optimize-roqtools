@@ -46,6 +46,13 @@ def convertFromMilli(num):
 def convertFromMu(num):
     return num / 1000000
 
+def editJson(filename, scale):
+    for line in fileinput.input(files=filename, inplace=True):
+        target = float(line.split()[1][:-1])
+        line = line.replace(line.split()[1][:-1], str(target * scale)) 
+        print(line, end="")
+
 if __name__ == "__main__":
-    editLVDSNetlist("1822-2408.inc", 1, 1, 0.5)
+    # editLVDSNetlist("1822-2408.inc", 1, 1, 0.5)
     # extractLVDS("test.txt")
+    editJson("logs.json", 10)
