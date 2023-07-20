@@ -1,0 +1,29 @@
+Test circuit for 1822-2408
+.include '1822-2408.inc'
+.options DCPATH ONECONN
+* Remove the input voltage sources from the output nodes and other nodes as appropriate
+* Define the input voltages as per the application
+X1 %REFIN %NOT_REFIN %VCC %VCP %CP %VS_2 %CLK2 %NOT_CLK2 %VS_3 %CLK1 %NOT_CLK1 %FUNCTION %STATUS %SCLK %SDIO %SDO %NOT_CS %VS_4 %GND %NOT_OUT2 
++ %OUT2 %VS_5 %VS_6 %GND %VS_7 %NOT_OUT1 %OUT1 %VS_8 %VS_9 %NOT_OUT4 %OUT4 %VS_10 %VS_11 %NOT_OUT3 %OUT3 %VS_12 %GND %GND %VS_13 
++ %VS_14 %NOTQ %Q %GND %VS_15 %RSET %GND %CPRSET %VS_16 %GND '1822-2408'
+
+RSET %RSET 0 4.12k
+RSEt2 %CPRSET 0 5.1k
+
+VVCC %VCC 0 pwl(0,3.3)
+VGND %GND 0 pwl(0,0)
+
+*VNOT_OUT0 %NOTQ 0 pwl(0,0)
+*VOUT0 %Q 0 pwl(0,0)
+*
+*VNOT_OUT3 %NOT_OUT3 0 pwl(0,0)
+*VOUT3 %OUT3 0 pwl(0,0)
+
+*RQ %vtt %Q 50
+*RQB %vtt %NOTQ 50
+*VTT %vtt 0 pwl(0 0 10u 2)
+Rdout0 %OUT3 %NOT_OUT3 100
+
+.post tran i(all)
+.tran 1u 1m
+.end
