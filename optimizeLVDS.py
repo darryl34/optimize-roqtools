@@ -14,12 +14,6 @@ def runLVDS(filename, MPD1_W=None, MND1_W=None, KP=None, RD=None, RS=None):
     return extractLVDS(data)
 
 
-def optimize(filename, bounds, idealValues):
-    optimizeVOH(filename, bounds, idealValues["VOH"], idealValues["delta"])
-    optimizeVOL(filename, bounds, idealValues["VOH"], idealValues["VOL"], idealValues["delta"])
-    print("Parameters optimized. Running cmd...\n")
-    print(os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -c '. core.cmd'\"", ).read())
-
 def optimizeVOH(filename, bounds, VOH, delta):
     # optimizer object initialization
     optimizer = BayesianOptimization(
@@ -39,7 +33,7 @@ def optimizeVOH(filename, bounds, VOH, delta):
 
     print("Calibrating VOH...")
 
-    for _ in range(5):
+    for _ in range(20):
         next_point = optimizer.suggest(utility)
         lvdsDict = runLVDS(filename, **next_point)
         targetVOH = -abs(lvdsDict["Output DOUTP"] - VOH) # always negated because we want to maximize
@@ -49,10 +43,6 @@ def optimizeVOH(filename, bounds, VOH, delta):
         # print("Output DOUTP:", lvdsDict["Output DOUTP"])
         # print("Target VOH:", targetVOH)
         # print("Next point:", next_point)
-        # print()
-
-    # print(optimizer.max)
-    # print(optimizer.max['params'])
     editLVDSNetlist(filename, **optimizer.max['params'])
 
 
@@ -73,7 +63,7 @@ def optimizeVOL(filename, bounds, VOH, VOL, delta):
 
     print("Calibrating VOL...")
 
-    for _ in range(5):
+    for _ in range(15):
         next_point = optimizer.suggest(utility)
         lvdsDict = runLVDS(filename, **next_point)
         target = -abs(lvdsDict["Output DOUTN"] - VOL) # always negated because we want to maximize
@@ -85,10 +75,17 @@ def optimizeVOL(filename, bounds, VOH, VOL, delta):
         # print("Target DOUTN:", target)
         # print("Next point:", next_point)
         # print()
-
+    editLVDSNetlist(filename, **optimizer.max['params'])
     # print(optimizer.max)
     # print(optimizer.max['params'])
-    editLVDSNetlist(filename, **optimizer.max['params'])
+
+
+# call this function to optimize LVDS
+def optimize(filename, bounds, idealValues):
+    optimizeVOH(filename, bounds, idealValues["VOH"], idealValues["delta"])
+    optimizeVOL(filename, bounds, idealValues["VOH"], idealValues["VOL"], idealValues["delta"])
+    print("Parameters optimized. Running cmd...\n")
+    print(os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -c '. core.cmd'\"", ).read())
 
 
 if __name__ == "__main__":
@@ -100,6 +97,7 @@ if __name__ == "__main__":
             'KP': (1e-5,1e-3),
             'RD': (1,300),
             'RS': (1,300)}
+    
     idealValues = {"VOH": 1.41, "VOL": 1.05, "delta": 0.36}
 
     optimize("1822-2408.inc", bounds, idealValues)

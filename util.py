@@ -11,12 +11,7 @@ def extractLVDS(data):
     for line in data:
         for key in lvds.keys():
             if key in line:
-                val = line.split()[3]
-                # handle the case where value has units
-                try:
-                    lvds[key] = float(val)
-                except ValueError:
-                    if 'm' in val: lvds[key] = convertFromMilli(float(val[:-1]))
+                lvds[key] = getVal(line.split()[3])
     return lvds
 
 
@@ -41,31 +36,37 @@ def extractECL(data):
     ecl = {"Output VOH": 0,
             "Output VOL": 0,
             "Output Delta": 0,
-            "Output VCM": 0}
+            "Output VCM": 0,
+            "Analog Supply Current IAVDD": 0}
     
     for line in data:
         for key in ecl.keys():
             if key in line:
-                val = line.split()[3]
-                # handle the case where value has units
-                try:
-                    ecl[key] = float(val)
-                except ValueError:
-                    if 'm' in val: ecl[key] = convertFromMilli(float(val[:-1]))
+                if key == "Analog Supply Current IAVDD":
+                    ecl[key] = getVal(line.split()[-1])
+                else:
+                    ecl[key] = getVal(line.split()[3])
     return ecl
 
-def editECLNetlist(filename, RB1=None, RB2=None, MB1_w=None, MB2_W=None):
+def editECLNetlist(filename, RB1=None, RB2=None, MB1_W=None, MB2_W=None):
     for line in fileinput.input(files=filename, inplace=True, encoding="utf-8"):
         if RB1 and "RB1 %vcc" in line:
             line = line.replace(line.split()[-1], str(RB1))
         elif RB2 and "RB2 %vcc" in line:
             line = line.replace(line.split()[-1], str(RB2))
-        elif MB1_w and "MB1 %b1" in line:
-            line = line.replace(line.split()[-1], "W=" + str(MB1_w))
+        elif MB1_W and "MB1 %b1" in line:
+            line = line.replace(line.split()[-1], "W=" + str(MB1_W))
         elif MB2_W and "MB2 %b2" in line:
             line = line.replace(line.split()[-1], "W=" + str(MB2_W))
         print(line, end="")
 
+
+def getVal(val):
+    # handle the case where value has units
+    try:
+        return float(val)
+    except ValueError:
+        if 'm' in val: return convertFromMilli(float(val[:-1]))
 
 def convertFromMilli(num):
     return num / 1000
