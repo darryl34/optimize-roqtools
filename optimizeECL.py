@@ -55,6 +55,7 @@ def optimizeCurrent(filename, bounds, VOH, VOL, IAVDD):
     # scale target values and load previous logs
     editJson("logs.json", 0.5)
     load_logs(optimizer, logs=["./logs.json"])
+    os.remove("logs.json")  # delete after loading logs
 
     utility = UtilityFunction(kind="ucb", kappa=5)
 
