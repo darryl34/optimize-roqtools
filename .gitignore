@@ -3,4 +3,5 @@ __pycache__
 # spice generated files
 .post_hist
 *.raw
+*.txt
 logs.json
