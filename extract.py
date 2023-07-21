@@ -5,23 +5,17 @@ def extractLVDS(data):
     lvds = {"Output DOUTP": 0,
             "Output DOUTN": 0,
             "Output delta": 0,
-            "Output com": 0,
-            "Digital Supply Current IDVDD": 0,
-            "Digital Supply Current IDGND": 0}
+            "Output com": 0}
     
-    for i, line in enumerate(data):
-            for key in lvds.keys():
-                if key in line:
-                    # to handle different formats of the output
-                    if i < 8:
-                        val = line.split()[3]
-                    else:
-                        val = line.split()[-1]
-                    # try except to handle the case where value has units
-                    try:
-                        lvds[key] = float(val)
-                    except ValueError:
-                        if 'm' in val: lvds[key] = convertFromMilli(float(val[:-1]))
+    for line in data:
+        for key in lvds.keys():
+            if key in line:
+                val = line.split()[3]
+                # try except to handle the case where value has units
+                try:
+                    lvds[key] = float(val)
+                except ValueError:
+                    if 'm' in val: lvds[key] = convertFromMilli(float(val[:-1]))
     return lvds
 
 

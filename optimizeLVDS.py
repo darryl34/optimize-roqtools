@@ -14,11 +14,13 @@ def runLVDS(filename, MPD1_W=None, MND1_W=None, KP=None, RD=None, RS=None):
     return extractLVDS(data)
 
 
-def optimize(filename, bounds):
-    optimizeDelta(filename, bounds)
-    optimizeCom(filename, bounds)
+def optimize(filename, bounds, idealValues):
+    optimizeVOH(filename, bounds, idealValues["VOH"], idealValues["delta"])
+    optimizeVOL(filename, bounds, idealValues["VOH"], idealValues["VOL"], idealValues["delta"])
+    print("Parameters optimized. Running cmd...\n")
+    print(os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -c '. core.cmd'\"", ).read())
 
-def optimizeDelta(filename, bounds):
+def optimizeVOH(filename, bounds, VOH, delta):
     # optimizer object initialization
     optimizer = BayesianOptimization(
         f=None,
@@ -33,25 +35,28 @@ def optimizeDelta(filename, bounds):
     optimizer.subscribe(Events.OPTIMIZATION_STEP, logger)
 
     # define acquisition function
-    utility = UtilityFunction(kind="ucb", kappa=15, kappa_decay=0.95)
+    utility = UtilityFunction(kind="ucb", kappa=5)
 
-    for _ in range(25):
+    print("Calibrating VOH...")
+
+    for _ in range(5):
         next_point = optimizer.suggest(utility)
         lvdsDict = runLVDS(filename, **next_point)
-        targetVOD = -abs(lvdsDict["Output delta"] - 0.36) # always negated because we want to maximize
-        optimizer.register(params=next_point, target=targetVOD)
+        targetVOH = -abs(lvdsDict["Output DOUTP"] - VOH) # always negated because we want to maximize
+        targetVOH += -abs(lvdsDict["Output delta"] - delta) * 4
+        optimizer.register(params=next_point, target=targetVOH)
 
-        print("Output Delta:", lvdsDict["Output delta"])
-        print("Target VOD:", targetVOD)
-        print("Next point:", next_point)
-        print()
+        # print("Output DOUTP:", lvdsDict["Output DOUTP"])
+        # print("Target VOH:", targetVOH)
+        # print("Next point:", next_point)
+        # print()
 
-    print(optimizer.max)
+    # print(optimizer.max)
     # print(optimizer.max['params'])
     editLVDSNetlist(filename, **optimizer.max['params'])
 
 
-def optimizeCom(filename, bounds):
+def optimizeVOL(filename, bounds, VOH, VOL, delta):
     optimizer = BayesianOptimization(
         f=None,
         pbounds=bounds,
@@ -61,31 +66,40 @@ def optimizeCom(filename, bounds):
     )
 
     # scale target values and load previous logs
-    editJson("logs.json", 100)
+    editJson("logs.json", 5)
     load_logs(optimizer, logs=["./logs.json"])
 
-    utility = UtilityFunction(kind="ucb", kappa=15, kappa_decay=0.9)
+    utility = UtilityFunction(kind="ucb", kappa=5)
 
-    for _ in range(25):
+    print("Calibrating VOL...")
+
+    for _ in range(5):
         next_point = optimizer.suggest(utility)
         lvdsDict = runLVDS(filename, **next_point)
-        target = -abs(lvdsDict["Output com"] - 1.23) # always negated because we want to maximize
-        target += -abs(lvdsDict["Output delta"] - 0.36) * 40 
+        target = -abs(lvdsDict["Output DOUTN"] - VOL) # always negated because we want to maximize
+        target += -abs(lvdsDict["Output DOUTP"] - VOH) * 2
+        target += -abs(lvdsDict["Output delta"] - delta) * 4
         optimizer.register(params=next_point, target=target)
 
-        print("Output Com:", lvdsDict["Output com"])
-        print("Target Com:", target)
-        print("Next point:", next_point)
-        print()
+        # print("Output DOUTN:", lvdsDict["Output DOUTN"])
+        # print("Target DOUTN:", target)
+        # print("Next point:", next_point)
+        # print()
 
-    print(optimizer.max)
+    # print(optimizer.max)
     # print(optimizer.max['params'])
     editLVDSNetlist(filename, **optimizer.max['params'])
 
 
 if __name__ == "__main__":
-    optimize("1822-2408.inc", {'MPD1_W': (1e-6,1e-3),
-                                'MND1_W': (1e-6,1e-3),
-                                'KP': (1e-5,1e-3),
-                                 'RD': (1,300),
-                                 'RS': (1,300)})
+    testDir = "1822-2408"
+    os.chdir(testDir)
+
+    bounds = {'MPD1_W': (1e-6,1e-3),
+            'MND1_W': (1e-6,1e-3),
+            'KP': (1e-5,1e-3),
+            'RD': (1,300),
+            'RS': (1,300)}
+    idealValues = {"VOH": 1.41, "VOL": 1.05, "delta": 0.36}
+
+    optimize("1822-2408.inc", bounds, idealValues)

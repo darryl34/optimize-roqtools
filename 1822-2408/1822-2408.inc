@@ -299,13 +299,13 @@ MB2 %b2 %vee %vee %vee ML2WN4A L=2u W=30u
 +      KP=816.3u RD=500m RS=500m
 .ends
 .subckt outs_lvds_1822_2408 %vdd %out %outn %gnd
-MPD1 %vdd %mnpa %mnpa %mnpa ML2WN2A L=2u W=40u
+MPD1 %vdd %mnpa %mnpa %mnpa ML2WN2A L=2u W=0.00025878545818674965
 C1 %vdd %mnpa 10p
 MP7 %outnx %m5d %mnpa %mnpa PMOD_OUT L=1u W=350u
 MP8 %outx %m6d %mnpa %mnpa PMOD_OUT L=1u W=350u
 MN7 %outnx %m5d %mnda %mnda NMOD_OUT L=1u W=100u
 MN8 %outx %m6d %mnda %mnda NMOD_OUT L=1u W=100u
-MND1 %mnda %gnd %gnd %gnd ML2WN2A L=2u W=35u
+MND1 %mnda %gnd %gnd %gnd ML2WN2A L=2u W=0.0006914264151186789
 C2 %mnda %gnd 10p
 MCMFB %mnda %cmfbn1 %gnd %gnd NMOD_OUT L=1u W=100u
 Ccmfb %cmfbn1 %gnd 10p
@@ -326,7 +326,7 @@ RPD %m6d %gnd 100K
 CDIFF %out %outn 5p
 * 
 * All Models
-.model PMOD_OUT UCBMOS PMOS VTO=-0.7 KP=30u RD=200.5 RS=200.5 
+.model PMOD_OUT UCBMOS PMOS VTO=-0.7 KP=0.00039323511935629825 RD=249.77477688807704 RS=183.33445743330222 
 .model NMOD_OUT UCBMOS NMOS VTO=0.7 KP=550u RD=113.7 RS=113.7
 .model ML2WN2A UCBMOS NMOS VTO=-0.7 KP=1650u RD=500m RS=500m 
 .ends
