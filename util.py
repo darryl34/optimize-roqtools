@@ -1,5 +1,6 @@
 import fileinput
 
+# ---- LVDS ---- #
 def extractLVDS(data):
     # dict of output data
     lvds = {"Output DOUTP": 0,
@@ -11,7 +12,7 @@ def extractLVDS(data):
         for key in lvds.keys():
             if key in line:
                 val = line.split()[3]
-                # try except to handle the case where value has units
+                # handle the case where value has units
                 try:
                     lvds[key] = float(val)
                 except ValueError:
@@ -34,6 +35,38 @@ def editLVDSNetlist(filename, MPD1_W=None, MND1_W=None, KP=None, RD=None, RS=Non
                 line = line.replace(line.split()[7], "RS=" + str(RS))
         print(line, end="")
 
+
+# ---- ECL ---- #
+def extractECL(data):
+    ecl = {"Output VOH": 0,
+            "Output VOL": 0,
+            "Output Delta": 0,
+            "Output VCM": 0}
+    
+    for line in data:
+        for key in ecl.keys():
+            if key in line:
+                val = line.split()[3]
+                # handle the case where value has units
+                try:
+                    ecl[key] = float(val)
+                except ValueError:
+                    if 'm' in val: ecl[key] = convertFromMilli(float(val[:-1]))
+    return ecl
+
+def editECLNetlist(filename, RB1=None, RB2=None, MB1_w=None, MB2_W=None):
+    for line in fileinput.input(files=filename, inplace=True, encoding="utf-8"):
+        if RB1 and "RB1 %vcc" in line:
+            line = line.replace(line.split()[-1], str(RB1))
+        elif RB2 and "RB2 %vcc" in line:
+            line = line.replace(line.split()[-1], str(RB2))
+        elif MB1_w and "MB1 %b1" in line:
+            line = line.replace(line.split()[-1], "W=" + str(MB1_w))
+        elif MB2_W and "MB2 %b2" in line:
+            line = line.replace(line.split()[-1], "W=" + str(MB2_W))
+        print(line, end="")
+
+
 def convertFromMilli(num):
     return num / 1000
 
@@ -49,4 +82,8 @@ def editJson(filename, scale):
 if __name__ == "__main__":
     # editLVDSNetlist("1822-2408.inc", 1, 1, 0.5)
     # extractLVDS("test.txt")
-    editJson("logs.json", 10)
+    # editJson("logs.json", 10)
+    # editECLNetlist("1822-2408/1822-2408.inc", 1, 1, 0.5, 0.5)
+    with open("1822-2408/test.txt", "r") as f:
+        data = f.read()
+    print(extractECL(data))

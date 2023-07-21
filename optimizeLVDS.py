@@ -4,7 +4,7 @@ from bayes_opt.event import Events
 from bayes_opt.logger import JSONLogger
 from bayes_opt.util import load_logs
 
-from extract import extractLVDS, editLVDSNetlist, editJson
+from util import extractLVDS, editLVDSNetlist, editJson
 
 
 def runLVDS(filename, MPD1_W=None, MND1_W=None, KP=None, RD=None, RS=None):
