@@ -108,6 +108,8 @@ def getVal(val):
         return float(val)
     except ValueError:
         if 'm' in val: return convertFromMilli(float(val[:-1]))
+        elif 'u' in val: return convertFromMu(float(val[:-1]))
+        else: return 0
 
 def convertFromMilli(num):
     return num / 1000
