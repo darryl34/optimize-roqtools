@@ -1,0 +1,16 @@
+Test circuit for 1822-6817
+.include '1822-6817.inc'
+.options DCPATH ONECONN
+X1 1 2 3 4 5 6 7 8 %VEE %VCC %NOTQB0 %QB0 %VCC %NOTQB1 %QB1 %VCC %VCC %NOTQA1 %QA1 %VCC %NOTQA0 %QA0 %VCC %VEE 25 %DA0 %NOTDA0 28 29 30 31 32 %PMH1 '1822-6817'
+
+VCC %VCC 0 dc PWL(0 0 10u 3.3)
+VEE %VEE 0 dc PWL(0 0 10u 0)
+
+*VIN %VIN 0 PULSE(3.3 0 0 0 0 10u 20u)
+*VINB %VINB 0 PULSE(3.3 0 0 0 0 10u 20u)
+
+* RQ %QA0 %NOTQA0 100
+
+.post tran i(all)
+.tran 1u 40u
+.end

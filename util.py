@@ -61,6 +61,47 @@ def editECLNetlist(filename, RB1=None, RB2=None, MB1_W=None, MB2_W=None):
         print(line, end="")
 
 
+# ---- CML ---- #
+def extractCML(data):
+    cml = {"Output VOH": 0,
+            "Output VOL": 0,
+            "Output Delta": 0,
+            "Output VCM": 0,
+            "IVCC": 0}
+    
+    for line in data:
+        for key in cml.keys():
+            if key in line:
+                if key == "IVCC":
+                    cml[key] = getVal(line.split()[-1])
+                else:
+                    cml[key] = getVal(line.split()[3])
+    return cml
+
+def editCMLNetlist(filename, R1=None, R2=None, R3=None, R4=None, BF=None, RC=None, RE=None, RB=None, MCA_W=None):
+    for line in fileinput.input(files=filename, inplace=True, encoding="utf-8"):
+        if R1 and "R1" in line:
+            line = line.replace(line.split()[-1], str(R1))
+        elif R2 and "R2" in line:
+            line = line.replace(line.split()[-1], str(R2))
+        elif R3 and "R3" in line:
+            line = line.replace(line.split()[-1], str(R3))
+        elif R4 and "R4" in line:
+            line = line.replace(line.split()[-1], str(R4))
+        elif ".model QMOD_OUT" in line:
+            if BF:
+                line = line.replace(line.split()[3], "BF=" + str(BF))
+            if RC:
+                line = line.replace(line.split()[4], "RC=" + str(RC))
+            if RE:
+                line = line.replace(line.split()[5], "RE=" + str(RE))
+            if RB:
+                line = line.replace(line.split()[6], "RB=" + str(RB))
+        elif MCA_W and "MCA %e" in line:
+            line = line.replace(line.split()[-1], "W=" + str(MCA_W))
+        print(line, end="")
+        
+
 def getVal(val):
     # handle the case where value has units
     try:
@@ -81,10 +122,7 @@ def editJson(filename, scale):
         print(line, end="")
 
 if __name__ == "__main__":
-    # editLVDSNetlist("1822-2408.inc", 1, 1, 0.5)
-    # extractLVDS("test.txt")
-    # editJson("logs.json", 10)
-    # editECLNetlist("1822-2408/1822-2408.inc", 1, 1, 0.5, 0.5)
-    with open("1822-2408/test.txt", "r") as f:
-        data = f.read()
-    print(extractECL(data))
+    with open("1822-6817/test.txt", "r") as f:
+        data = f.read().splitlines()
+    print(extractCML(data))
+    # editCMLNetlist("1822-6817/1822-6817.inc", R1=1000, R2=1000, R3=1000, R4=1000, BF=10, RC=1000, RE=1000, RB=1000, MCA_W=1e-4)
