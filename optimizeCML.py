@@ -34,8 +34,8 @@ def optimizeV(filename, bounds, VOH, VOL, delta):
         next_point = optimizer.suggest(utility)
         cmlDict = runCML(filename, **next_point)
         target = -abs(cmlDict["Output VOH"] - VOH)
-        target += -abs(cmlDict["Output VOL"] - VOL) * 1.5
-        target += -abs(cmlDict["Output Delta"] - delta)
+        target += -abs(cmlDict["Output VOL"] - VOL)
+        target += -abs(cmlDict["Output Delta"] - delta) * 2
         optimizer.register(next_point, target)
 
         # print("Output VOH:", cmlDict["Output VOH"])
@@ -66,8 +66,8 @@ def optimizeCurrent(filename, bounds, VOH, VOL, delta, IVCC):
         next_point = optimizer.suggest(utility)
         cmlDict = runCML(filename, **next_point)
         target = -abs(cmlDict["IVCC"] - IVCC)
-        target += -abs((cmlDict["Output VOH"] - VOH) + (cmlDict["Output Delta"] - delta)) * 5
-        target += -abs(cmlDict["Output VOL"] - VOL) * 5
+        target += -abs((cmlDict["Output VOH"] - VOH) + (cmlDict["Output Delta"] - delta)) * 2
+        target += -abs(cmlDict["Output VOL"] - VOL) * 2
         optimizer.register(params=next_point, target=target)
 
     editCMLNetlist(filename, **optimizer.max['params'])
@@ -88,9 +88,9 @@ if __name__ == "__main__":
                 "R3": (100, 1000),
                 "R4": (100, 1000),
                 "BF": (1,1000),
-                "RC": (1, 1000),
-                "RE": (1, 1000),
-                "RB": (1, 1000),
+                "RC": (1e-3, 500),
+                "RE": (1e-3, 500),
+                "RB": (1e-3, 500),
                 "MCA_W": (1e-6, 1e-4)}
     
     idealValues = {"VOH": 3.5,

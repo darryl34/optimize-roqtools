@@ -99,3 +99,11 @@ def test_editCMLNetlist():
 
     # Delete test file
     os.remove(filename)
+
+def test_getVal():
+    assert getVal("1.2") == 1.2
+    assert getVal("1.2m") == 0.0012
+    assert getVal("1.2u") == 0.0000012
+    assert getVal("1.2n") == 0
+    assert getVal("1.2p") == 0
+    assert getVal("1.2f") == 0
