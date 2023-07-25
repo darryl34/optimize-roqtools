@@ -1,0 +1,81 @@
+* To test the FET characteristics
+.OPTIONS ONECONN DCPATH
+.include '1855-3098.inc'
+* MOSFET Output Analysis
+.sample 9
+
+case(1)
+XM1 0 0 0 %g %d '1855-3098'
+vd %d 0 DC
+vg %g 0 DC 4
+.DC vd 0 5 10m
+.post dc i(all)
+endcase
+
+case(2)
+XM1 0 0 0 %g %d '1855-3098'
+vd %d 0 DC
+vg %g 0 DC 5
+.DC vd 5 0 10m
+.post dc i(all)
+endcase
+
+case(3)
+XM1 0 0 0 %g %d '1855-3098'
+vd %d 0 DC
+vg %g 0 DC 6
+.DC vd 0 5 10m
+.post dc i(all)
+endcase
+
+case(4)
+XM1 0 0 0 %g %d '1855-3098'
+vd %d 0 DC
+vg %g 0 DC 7
+.DC vd 5 0 10m
+.post dc i(all)
+endcase
+
+case(5)
+XM1 0 0 0 %g %d '1855-3098'
+vd %d 0 DC
+vg %g 0 DC 8
+.DC vd 0 5 10m
+.post dc i(all)
+endcase
+
+case(6)
+XM1 0 0 0 %g %d '1855-3098'
+vd %d 0 DC
+vg %g 0 DC 9
+.DC vd 5 0 10m
+.post dc i(all)
+endcase
+
+case(7)
+XM1 0 0 0 %g %d '1855-3098'
+vd %d 0 DC
+vg %g 0 DC 10
+.DC vd 0 5 10m
+.post dc i(all)
+endcase
+
+case(8)
+* MOSFET Transfer Characteristics
+XM1 0 0 0 %g %d '1855-3098'
+vd %d 0 DC 10
+vg %g 0 DC
+.DC vg 0 10 10m
+.post dc i(all)
+endcase
+
+case(9)
+* Body diode Characteristics
+XM1 %s %s %s 0 0 '1855-3098'
+vin %s 0 DC
+.DC vin 0 1.2 1m
+.post dc i(all)
+endcase
+.end
+
+

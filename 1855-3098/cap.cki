@@ -1,0 +1,13 @@
+# Testing for capacitance
+.OPTIONS ONECONN DCPATH
+.include '1855-3098.inc'
+*Instantiate the sub circuit
+XM1 %s 0 0 %g %d '1855-3098'
+
+Vg %vin 0 ac 1
+Rg %g %vin 100k
+Rd %d 0 0.001m
+Rs %s 0 0.001m
+.ac dec 10 1 2meg
+.post ac i(all)
+.end

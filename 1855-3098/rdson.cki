@@ -1,0 +1,23 @@
+# Testing for pebble 
+# Test set up for measuring RDSon of this device
+.OPTIONS ONECONN DCPATH
+.include '1855-3098.inc'
+*Instantiate the sub circuit
+XM1 0 0 0 %g %d '1855-3098'
+.sample 2
+
+case(1)
+vd %d 0 dc
+vg %g 0 dc 10
+.dc vd 0 5 10m
+.post dc i(all)
+endcase
+
+case(2)
+vd %d 0 dc
+vg %g 0 dc 7.5
+.dc vd 5 0 10m
+.post dc i(all)
+endcase
+
+.end
