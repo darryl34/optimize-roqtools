@@ -100,6 +100,32 @@ def test_editCMLNetlist():
     # Delete test file
     os.remove(filename)
 
+def test_splitList():
+    lst = [1, 2, "A", 3, 4, "B", 5, "C", 6]
+    assert list(splitList(lst, ["A"])) == [[1, 2], [3, 4, "B", 5, "C", 6]]
+    assert list(splitList(lst, ["B"])) == [[1, 2, "A", 3, 4], [5, "C", 6]]
+    assert list(splitList(lst, ["C"])) == [[1, 2, "A", 3, 4, "B", 5], [6]]
+    assert list(splitList(lst, ["A", "B"])) == [[1, 2], [3, 4], [5, "C", 6]]
+    assert list(splitList(lst, ["B", "C"])) == [[1, 2, "A", 3, 4], [5], [6]]
+    assert list(splitList(lst, ["A", "B", "C"])) == [[1, 2], [3, 4], [5], [6]]
+
+def test_splitList2():
+    lst = ["T", "1 2", "2 3", "S", "3 4", "4 5"]
+    assert list(splitList(lst, ["T"])) == [["1 2", "2 3", "S", "3 4", "4 5"]]
+    assert list(splitList(lst, ["T", "S"])) == [["1 2", "2 3"], ["3 4", "4 5"]]
+
+def test_splitList3():
+    # Test for empty list
+    lst = ["A"]
+    assert list(splitList(lst, ["A"])) == []
+
+def test_str2float():
+    assert str2floats("") == []
+    assert str2floats("1.2") == [1.2]
+    assert str2floats("1.2 3.4") == [1.2, 3.4]
+    assert str2floats("1.2 3.4 5.6") == [1.2, 3.4, 5.6]
+
+
 def test_getVal():
     assert getVal("1.2") == 1.2
     assert getVal("1.2m") == 0.0012

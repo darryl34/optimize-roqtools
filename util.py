@@ -102,20 +102,45 @@ def editCMLNetlist(filename, R1=None, R2=None, R3=None, R4=None, BF=None, RC=Non
         print(line, end="")
         
 
+# ---- MOSFET ---- #
+def extractMosText(filename):
+    with open(filename, "r") as f:
+        data = f.read()
+    '''Takes in a text file and returns a dictionary of MOSFET data points'''
+    mos_data = {"T": [],
+                "S": [],
+                "L": []}
+    split = list(splitList(data.splitlines(), ["T", "S", "L"]))
+    mos_data["T"] = str2floats(split[0])
+    mos_data["S"] = str2floats(split[1])
+    mos_data["L"] = str2floats(split[2])
+    return mos_data
+
+
+def splitList(lst, sep):
+    chunk = []
+    for val in lst:
+        if val:
+            if val in sep:
+                if chunk: yield chunk
+                chunk = []
+            else:
+                chunk.append(val)
+    if chunk:
+        yield chunk
+
+def str2floats(lst):
+    return [list(map(float, i.split())) for i in lst]
+
 def getVal(val):
     # handle the case where value has units
     try:
         return float(val)
     except ValueError:
-        if 'm' in val: return convertFromMilli(float(val[:-1]))
-        elif 'u' in val: return convertFromMu(float(val[:-1]))
+        if 'm' in val: return float(val[:-1]) / 1000
+        elif 'u' in val: return float(val[:-1]) / 1000000
         else: return 0
 
-def convertFromMilli(num):
-    return num / 1000
-
-def convertFromMu(num):
-    return num / 1000000
 
 def editJson(filename, scale):
     for line in fileinput.input(files=filename, inplace=True):
@@ -124,7 +149,5 @@ def editJson(filename, scale):
         print(line, end="")
 
 if __name__ == "__main__":
-    with open("1822-6817/test.txt", "r") as f:
-        data = f.read().splitlines()
-    print(extractCML(data))
+    print(extractMosText("1855-3098/mos_data.txt"))
     # editCMLNetlist("1822-6817/1822-6817.inc", R1=1000, R2=1000, R3=1000, R4=1000, BF=10, RC=1000, RE=1000, RB=1000, MCA_W=1e-4)
