@@ -119,11 +119,6 @@ def test_splitList3():
     lst = ["A"]
     assert list(splitList(lst, ["A"])) == []
 
-def test_str2float():
-    assert str2floats([]) == []
-    assert str2floats(["1.2"]) == [[1.2]]
-    assert str2floats(["1.2 3.4"]) == [[1.2, 3.4]]
-    assert str2floats(["1.2 3.4", "5.6 7.8"]) == [[1.2, 3.4], [5.6, 7.8]]
 
 def test_getVal():
     assert getVal("1.2") == 1.2

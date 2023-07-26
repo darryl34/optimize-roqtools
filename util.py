@@ -111,12 +111,76 @@ def extractMosText(filename):
                 "S": [],
                 "L": []}
     split = list(splitList(data.splitlines(), ["T", "S", "L"]))
-    mos_data["T"] = str2floats(split[0])
-    mos_data["S"] = str2floats(split[1])
-    mos_data["L"] = str2floats(split[2])
+    mos_data["T"] = [i.split() for i in split[0]]
+    mos_data["S"] = [i.split() for i in split[1]]
+    mos_data["L"] = [i.split() for i in split[2]]
     return mos_data
 
+def genMosCmd(mos_data, isSignPositive):
+    data = []
+    data.append("set clobber\nset nomarks\nsi harness\n\n")
 
+    # Transfer characteristics
+    data.append('print "******** Printing and Plotting the Transfer characteristics of FET********"\n')
+    for i in range(len(mos_data["T"])):
+        VGS = str(mos_data["T"][i][0])
+        ID = str(mos_data["T"][i][1])
+        string = 'print "T DS VG: ' + VGS
+        string += ' Model VG: %s V  @ ID: ' + ID
+        string += ' Delta: %s" abs(xcross(abs(i(vd)),'+ID+')) abs(abs(xcross(abs(i(vd)),'+ID+'))'+'-'+VGS+')' 
+        data.append(string + '\n')
+
+    # Saturation Output characteristics
+    data.append('\nprint "*******Plotting the output characteristics of FET in Saturation Region*******"\n')
+    for i in range(len(mos_data["S"])):
+        VDS = str(mos_data["S"][i][0])
+        ID = str(mos_data["S"][i][1])
+        VGS = str(mos_data["S"][i][2])
+        if isSignPositive: '-' + VDS
+        string = 'print "S AT VG: ' + VGS
+        string += ' DS ID: ' + ID
+        string += ' Model ID: %sA DELTA: %sA OOD: %sX" yvalue(abs(i(vd)),'+VDS+') abs(yvalue(abs(i(vd)),'+VDS+')'+'-'+ID+') (yvalue(abs(i(vd)),'+VDS+')/('+ID+'))'
+        data.append(string + '\n')
+    
+    # Linear Output characteristics
+    data.append('\nprint "*******Plotting the output characteristics of FET in Linear Region*******"\n')
+    for i in range(len(mos_data["L"])):
+        VGS = str(mos_data["L"][i][0])
+        VDS = str(mos_data["L"][i][1])
+        ID = str(mos_data["L"][i][2])
+        if isSignPositive: '-' + VDS
+        string = 'print "L AT VG: ' + VGS
+        string += ' DS ID: ' + ID
+        string += ' Model ID: %sA DELTA: %sA OOD: %sX" yvalue(abs(i(vd)),'+VDS+') abs(yvalue(abs(i(vd)),'+VDS+')'+'-'+ID+') (yvalue(abs(i(vd)),'+VDS+')/('+ID+'))'
+        data.append(string + '\n')
+
+    with open("test.cmd", "w") as f:
+        f.writelines(data)
+
+def extractMOSCmd(data):
+    t = []
+    s = []
+    l = []
+
+    for line in data:
+        if line:
+            if "T" == line[0]:
+                lst = line.split()
+                # Model VG, Delta
+                t.append([getVal(lst[6]), getVal(lst[-1])])
+            elif "S" == line[0]:
+                lst = line.split()
+                # Model ID, Delta, OOD
+                s.append([getVal(lst[9][:-1]), getVal(lst[11][:-1]), getVal(lst[-1][:-1])])
+            elif "L" == line[0]:
+                lst = line.split()
+                # Model ID, Delta, OOD
+                l.append([getVal(lst[9][:-1]), getVal(lst[11][:-1]), getVal(lst[-1][:-1])])
+    
+    return {"T": t, "S": s, "L": l}
+
+
+# ---- Helper functions ---- #
 def splitList(lst, sep):
     chunk = []
     for val in lst:
@@ -129,8 +193,6 @@ def splitList(lst, sep):
     if chunk:
         yield chunk
 
-def str2floats(lst):
-    return [list(map(float, i.split())) for i in lst]
 
 def getVal(val):
     # handle the case where value has units
@@ -149,5 +211,7 @@ def editJson(filename, scale):
         print(line, end="")
 
 if __name__ == "__main__":
-    print(extractMosText("1855-3098/mos_data.txt"))
-    # editCMLNetlist("1822-6817/1822-6817.inc", R1=1000, R2=1000, R3=1000, R4=1000, BF=10, RC=1000, RE=1000, RB=1000, MCA_W=1e-4)
+    # genMosCmd(extractMosText("1855-3098/mos_data.txt"), True)
+    with open("1855-3098/test.txt", "r") as f:
+        data = f.read().splitlines()[1:]
+    extractMOSCmd(data)
