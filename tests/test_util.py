@@ -122,8 +122,9 @@ def test_splitList3():
 
 def test_getVal():
     assert getVal("1.2") == 1.2
-    assert getVal("1.2m") == 0.0012
-    assert getVal("1.2u") == 0.0000012
-    assert getVal("1.2n") == 0
-    assert getVal("1.2p") == 0
+    assert getVal("1.2m") == 1.2e-3
+    assert getVal("1.2u") == 1.2e-6
+    assert getVal("1.2n") == 1.2e-9
+    assert getVal("1.2p") == 1.2e-12
     assert getVal("1.2f") == 0
+    assert getVal("1.2k") == 1.2e3

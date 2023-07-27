@@ -116,12 +116,12 @@ def extractMosText(filename):
     mos_data["L"] = [i.split() for i in split[2]]
     return mos_data
 
-def genMosCmd(mos_data, isSignPositive):
+def genMosCmd(filename, mos_data, isSignPositive):
     data = []
     data.append("set clobber\nset nomarks\nsi harness\n\n")
 
     # Transfer characteristics
-    data.append('print "******** Printing and Plotting the Transfer characteristics of FET********"\n')
+    data.append('se 8\nprint "******** Printing and Plotting the Transfer characteristics of FET********"\n')
     for i in range(len(mos_data["T"])):
         VGS = str(mos_data["T"][i][0])
         ID = str(mos_data["T"][i][1])
@@ -136,8 +136,9 @@ def genMosCmd(mos_data, isSignPositive):
         VDS = str(mos_data["S"][i][0])
         ID = str(mos_data["S"][i][1])
         VGS = str(mos_data["S"][i][2])
+        se = 'se ' + str(int(float(VGS))-3)
         if isSignPositive: '-' + VDS
-        string = 'print "S AT VG: ' + VGS
+        string = se + '\nprint "S AT VG: ' + VGS
         string += ' DS ID: ' + ID
         string += ' Model ID: %sA DELTA: %sA OOD: %sX" yvalue(abs(i(vd)),'+VDS+') abs(yvalue(abs(i(vd)),'+VDS+')'+'-'+ID+') (yvalue(abs(i(vd)),'+VDS+')/('+ID+'))'
         data.append(string + '\n')
@@ -149,12 +150,13 @@ def genMosCmd(mos_data, isSignPositive):
         VDS = str(mos_data["L"][i][1])
         ID = str(mos_data["L"][i][2])
         if isSignPositive: '-' + VDS
-        string = 'print "L AT VG: ' + VGS
+        se = 'se ' + str(int(float(VGS))-3)
+        string = se + '\nprint "L AT VG: ' + VGS
         string += ' DS ID: ' + ID
         string += ' Model ID: %sA DELTA: %sA OOD: %sX" yvalue(abs(i(vd)),'+VDS+') abs(yvalue(abs(i(vd)),'+VDS+')'+'-'+ID+') (yvalue(abs(i(vd)),'+VDS+')/('+ID+'))'
         data.append(string + '\n')
 
-    with open("test.cmd", "w") as f:
+    with open(filename, "w") as f:
         f.writelines(data)
 
 def extractMOSCmd(data):
@@ -179,6 +181,23 @@ def extractMOSCmd(data):
     
     return {"T": t, "S": s, "L": l}
 
+def editMOSNetlist(filename, VTO=None, KP=None, LAMBDA=None, RS=None, RD=None):
+    with fileinput.input(files=filename, inplace=True, encoding="utf-8") as f:
+        for line in f:
+            if "LAMBDA" in line:
+                if VTO:
+                    line = line.replace(line.split()[4], "VTO=" + str(VTO))
+                if KP:
+                    line = line.replace(line.split()[5], "KP=" + str(KP))
+                if LAMBDA:
+                    line = line.replace(line.split()[6], "LAMBDA=" + str(LAMBDA))
+            if "CGSO" in line:
+                if RS:
+                    line = line.replace(line.split()[1], "RS=" + str(RS))
+                if RD:
+                    line = line.replace(line.split()[2], "RD=" + str(RD))
+            print(line, end="")
+
 
 # ---- Helper functions ---- #
 def splitList(lst, sep):
@@ -199,8 +218,11 @@ def getVal(val):
     try:
         return float(val)
     except ValueError:
-        if 'm' in val: return float(val[:-1]) / 1000
-        elif 'u' in val: return float(val[:-1]) / 1000000
+        if 'm' in val: return float(val[:-1]) * 1e-3
+        elif 'u' in val: return float(val[:-1]) * 1e-6
+        elif 'n' in val: return float(val[:-1]) * 1e-9
+        elif 'p' in val: return float(val[:-1]) * 1e-12
+        elif 'k' in val: return float(val[:-1]) * 1e3
         else: return 0
 
 
@@ -211,7 +233,8 @@ def editJson(filename, scale):
         print(line, end="")
 
 if __name__ == "__main__":
-    # genMosCmd(extractMosText("1855-3098/mos_data.txt"), True)
-    with open("1855-3098/test.txt", "r") as f:
-        data = f.read().splitlines()[1:]
-    extractMOSCmd(data)
+    genMosCmd("test.cmd", extractMosText("1855-3098/mos_data.txt"), True)
+    # with open("1855-3098/test.txt", "r") as f:
+    #     data = f.read().splitlines()[1:]
+    # extractMOSCmd(data)
+    # editMOSNetlist("1855-3098/1855-3098.inc", VTO=0.5, KP=0.0001, LAMBDA=0.01, RS=0.1, RD=0.1)
