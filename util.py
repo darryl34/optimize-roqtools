@@ -218,7 +218,8 @@ def getVal(val):
     try:
         return float(val)
     except ValueError:
-        if 'm' in val: return float(val[:-1]) * 1e-3
+        if 'meg' in val: return float(val[:-3]) * 1e6
+        elif 'm' in val: return float(val[:-1]) * 1e-3
         elif 'u' in val: return float(val[:-1]) * 1e-6
         elif 'n' in val: return float(val[:-1]) * 1e-9
         elif 'p' in val: return float(val[:-1]) * 1e-12

@@ -36,11 +36,11 @@ def optimizeT(filename, bounds):
         next_point = optimizer.suggest(utility)
         mosDict = runMOS(filename, **next_point)
         try:
-            target = -abs(sum(softexp(i[1]) for i in mosDict["T"]))
+            target = -abs(sum(softexp(i[1], 0.5) for i in mosDict["T"]))
         except OverflowError:
             target = -abs(sum(i[1] for i in mosDict["T"]))
         optimizer.register(next_point, target)
-
+    print(optimizer.max)
     editMOSNetlist(filename, **optimizer.max['params'])
 
 
@@ -63,30 +63,30 @@ def optimizeS(filename, bounds):
     for _ in range(20):
         next_point = optimizer.suggest(utility)
         mosDict = runMOS(filename, **next_point)
-        target = sum(-abs(ood(i[2])) for i in mosDict["S"]) / 10
-        target += sum(-abs(ood(i[2])) for i in mosDict["L"]) / 2
-        T_delta = -abs(sum(softexp(i[1]) for i in mosDict["T"]))
+        target = sum(-abs(ood(i[2])) for i in mosDict["S"])
+        target += sum(-abs(ood(i[2])) for i in mosDict["L"])
+        T_delta = -abs(sum(softexp(i[1], 1) for i in mosDict["T"]))
         target += T_delta
         optimizer.register(next_point, target)
 
-        print("Target S:", target)
+        # print("Target S:", target)
     print(optimizer.max)
     editMOSNetlist(filename, **optimizer.max['params'])
 
 # soft exponential activation function
-def softexp(x):
-    return 2**(x-0.2) if x < 5 else 50
+def softexp(x, threshold):
+    if x <= threshold: return x
+    elif x > 5: return 100
+    else: return 2**(x-0.2)
 
 def ood(x):
-    # cap very small values
-    if x <= 1e-3: return 50
     # values towards 1 exponentially get lower, hence better
-    elif x <= 1: return (1/x)-1
-    else: return softexp(x)
+    if x <= 1: return (1/x)-1
+    else: return softexp(x, 1)
 
 def optimize(filename, bounds):
     optimizeT(filename, bounds)
-    # optimizeS(filename, bounds)
+    optimizeS(filename, bounds)
     print("Parameters optimized. Running cmd...")
     print(os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -c '. core.cmd'\"", ).read())
 
@@ -94,8 +94,8 @@ def optimize(filename, bounds):
 if __name__ == "__main__":
     os.chdir("1855-3098")
 
-    bounds = {"VTO": (0.1, 10),
-                "KP": (0.1, 10),
+    bounds = {"VTO": (0.1, 3.95),
+                "KP": (0.1, 100),
                 "LAMBDA": (1e-2, 100),
                 "RS": (1e-6, 1e-2),
                 "RD": (1e-6, 1e-2)}
