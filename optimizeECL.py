@@ -9,7 +9,7 @@ from util import extractECL, editECLNetlist, editJson
 
 def runECL(filename, RB1=None, RB2=None, MB1_W=None, MB2_W=None):
     editECLNetlist(filename, RB1, RB2, MB1_W, MB2_W)
-    data = os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -c '. core.cmd'\"").read()
+    data = os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\"").read()
     data = data.splitlines()[1:]
     return extractECL(data)
 
@@ -30,16 +30,15 @@ def optimizeV(filename, bounds, VOH, VOL):
     # define acquisition function
     utility = UtilityFunction(kind="ucb", kappa=5)
 
-    print("Calibrating VOH and VOL...")
     
-    for _ in range(15):
+    for i in range(15):
+        print("Calibrating VOH and VOL... Iteration: " + str(i+1) + "/15", end="\r", flush=True)
         next_point = optimizer.suggest(utility)
         eclDict = runECL(filename, **next_point)
         target = -abs(eclDict["Output VOH"] - VOH)
         target += -abs(eclDict["Output VOL"] - VOL)
         optimizer.register(next_point, target)
-        # print("Target VOH:", target)
-    
+    print(optimizer.max)
     editECLNetlist(filename, **optimizer.max['params'])
 
 
@@ -59,9 +58,9 @@ def optimizeCurrent(filename, bounds, VOH, VOL, IAVDD):
 
     utility = UtilityFunction(kind="ucb", kappa=5)
 
-    print("Calibrating IAVDD...")
 
-    for _ in range(10):
+    for i in range(10):
+        print("Calibrating IAVDD... Iteration: " + str(i+1) + "/10", end="\r", flush=True)
         next_point = optimizer.suggest(utility)
         eclDict = runECL(filename, **next_point)
         target = -abs(eclDict["Analog Supply Current IAVDD"] - IAVDD)
@@ -76,8 +75,8 @@ def optimizeCurrent(filename, bounds, VOH, VOL, IAVDD):
 def optimize(filename, bounds, idealValues):
     optimizeV(filename, bounds, idealValues["VOH"], idealValues["VOL"])
     optimizeCurrent(filename, bounds, **idealValues)
-    print("Parameters optimized. Running cmd...\n")
-    print(os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -c '. core.cmd'\"", ).read())
+    print("\nParameters optimized. Running cmd...\n")
+    print(os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\"", ).read())
 
 if __name__ == "__main__":
     os.chdir("1822-2408")

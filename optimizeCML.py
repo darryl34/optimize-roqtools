@@ -8,7 +8,7 @@ from util import extractCML, editCMLNetlist, editJson
 
 def runCML(filename, R1=None, R2=None, R3=None, R4=None, BF=None, RC=None, RE=None, RB=None, MCA_W=None):
     editCMLNetlist(filename, R1, R2, R3, R4, BF, RC, RE, RB, MCA_W)
-    data = os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -c '. core.cmd'\"").read()
+    data = os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\"").read()
     data = data.splitlines()[1:]
     return extractCML(data)
 
@@ -28,9 +28,9 @@ def optimizeV(filename, bounds, VOH, VOL, delta):
     # define acquisition function
     utility = UtilityFunction(kind="ucb", kappa=5)
 
-    print("Calibrating VOH and VOL...")
 
-    for _ in range(20):
+    for i in range(20):
+        print("Calibrating VOH and VOL... Iteration " + str(i+1) + "/20", end="\r", flush=True)
         next_point = optimizer.suggest(utility)
         cmlDict = runCML(filename, **next_point)
         target = -abs(cmlDict["Output VOH"] - VOH)
@@ -41,6 +41,7 @@ def optimizeV(filename, bounds, VOH, VOL, delta):
         # print("Output VOH:", cmlDict["Output VOH"])
         # print("Target VOH:", target)
         # print("Next point:", next_point)
+    print(optimizer.max)
     editCMLNetlist(filename, **optimizer.max['params'])
 
 
@@ -60,9 +61,9 @@ def optimizeCurrent(filename, bounds, VOH, VOL, delta, IVCC):
 
     utility = UtilityFunction(kind="ucb", kappa=5)
 
-    print("Calibrating IVCC...")
 
-    for _ in range(10):
+    for i in range(10):
+        print("Calibrating IVCC... Iteration " + str(i+1) + "/10", end="\r", flush=True)
         next_point = optimizer.suggest(utility)
         cmlDict = runCML(filename, **next_point)
         target = -abs(cmlDict["IVCC"] - IVCC)
@@ -77,8 +78,8 @@ def optimizeCurrent(filename, bounds, VOH, VOL, delta, IVCC):
 def optimize(filename, bounds, idealValues):
     optimizeV(filename, bounds, idealValues["VOH"], idealValues["VOL"], idealValues["Delta"])
     optimizeCurrent(filename, bounds, idealValues["VOH"], idealValues["VOL"], idealValues["Delta"], idealValues["IVCC"])
-    print("Parameters optimized. Running cmd...")
-    print(os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -c '. core.cmd'\"", ).read())
+    print("\nParameters optimized. Running cmd...\n")
+    print(os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s - f-c '. core.cmd'\"", ).read())
 
 if __name__ == "__main__":
     os.chdir("1822-6817")

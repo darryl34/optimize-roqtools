@@ -9,7 +9,7 @@ from util import extractLVDS, editLVDSNetlist, editJson
 
 def runLVDS(filename, MPD1_W=None, MND1_W=None, KP=None, RD=None, RS=None):
     editLVDSNetlist(filename, MPD1_W, MND1_W, KP, RD, RS)
-    data = os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -c '. core.cmd'\"").read()
+    data = os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\"").read()
     data = data.splitlines()[1:]
     return extractLVDS(data)
 
@@ -31,9 +31,9 @@ def optimizeVOH(filename, bounds, VOH, delta):
     # define acquisition function
     utility = UtilityFunction(kind="ucb", kappa=5)
 
-    print("Calibrating VOH...")
 
-    for _ in range(20):
+    for i in range(20):
+        print("Calibrating VOH... Iteration " + str(i+1) + "/20", end="\r", flush=True)
         next_point = optimizer.suggest(utility)
         lvdsDict = runLVDS(filename, **next_point)
         targetVOH = -abs(lvdsDict["Output DOUTP"] - VOH) # always negated because we want to maximize
@@ -62,9 +62,9 @@ def optimizeVOL(filename, bounds, VOH, VOL, delta):
 
     utility = UtilityFunction(kind="ucb", kappa=5)
 
-    print("Calibrating VOL...")
 
-    for _ in range(15):
+    for i in range(15):
+        print("Calibrating VOL... Iteration " + str(i+1) + "/15", end="\r", flush=True)
         next_point = optimizer.suggest(utility)
         lvdsDict = runLVDS(filename, **next_point)
         target = -abs(lvdsDict["Output DOUTN"] - VOL) # always negated because we want to maximize
@@ -75,18 +75,15 @@ def optimizeVOL(filename, bounds, VOH, VOL, delta):
         # print("Output DOUTN:", lvdsDict["Output DOUTN"])
         # print("Target DOUTN:", target)
         # print("Next point:", next_point)
-        # print()
     editLVDSNetlist(filename, **optimizer.max['params'])
-    # print(optimizer.max)
-    # print(optimizer.max['params'])
 
 
 # call this function to optimize LVDS
 def optimize(filename, bounds, idealValues):
     optimizeVOH(filename, bounds, idealValues["VOH"], idealValues["delta"])
     optimizeVOL(filename, bounds, idealValues["VOH"], idealValues["VOL"], idealValues["delta"])
-    print("Parameters optimized. Running cmd...\n")
-    print(os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -c '. core.cmd'\"", ).read())
+    print("\nParameters optimized. Running cmd...\n")
+    print(os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\"", ).read())
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@ import os
 from bayes_opt import BayesianOptimization, UtilityFunction
 from bayes_opt.event import Events
 from bayes_opt.logger import JSONLogger
-from bayes_opt.util import load_logs
+from bayes_opt.util import load_logs, NotUniqueError
 
 from util import extractMOSCmd, extractMosText, genMosCmd, editMOSNetlist, editJson
 
@@ -17,7 +17,7 @@ def optimizeT(filename, bounds):
     optimizer = BayesianOptimization(
         f=None,
         pbounds=bounds,
-        verbose=2,
+        verbose=1,
         random_state=42,
         allow_duplicate_points=True
     )
@@ -29,14 +29,13 @@ def optimizeT(filename, bounds):
     # define acquisition function
     utility = UtilityFunction(kind="ucb", kappa=5)
 
-    
-    print("Calibrating T...")
-
-    for _ in range(20):
+    for i in range(20):
+        print("Calibrating T... Iteration: " + str(i+1) + "/20", end="\r", flush=True)
         next_point = optimizer.suggest(utility)
         mosDict = runMOS(filename, **next_point)
         try:
-            target = -abs(sum(softexp(i[1], 0.5) for i in mosDict["T"]))
+            # target = -abs(sum(softexp(i[1], 5) for i in mosDict["T"]))
+            target = -abs(softexp(sum(i[1] for i in mosDict["T"]), 3))
         except OverflowError:
             target = -abs(sum(i[1] for i in mosDict["T"]))
         optimizer.register(next_point, target)
@@ -48,36 +47,64 @@ def optimizeS(filename, bounds):
     optimizer = BayesianOptimization(
         f=None,
         pbounds=bounds,
-        verbose=2,
+        verbose=1,
         random_state=42,
         allow_duplicate_points=True
     )
 
-    editJson("logs.json", 5)
+    editJson("logs.json", 10)
     load_logs(optimizer, logs=["./logs.json"])
-    # os.remove("logs.json")
+    os.remove("logs.json")
 
-    utility = UtilityFunction(kind="ucb", kappa=5)
+    utility = UtilityFunction(kind="ucb", kappa=3)
 
-    print("Calibrating S...")
-    for _ in range(20):
+    for i in range(15):
+        print("Calibrating S... Iteration: " + str(i+1) + "/15", end="\r", flush=True)
+        next_point = optimizer.suggest(utility)
+        mosDict = runMOS(filename, **next_point)
+        target = sum(-abs(ood(i[2])) for i in mosDict["S"])
+        # target += sum(-abs(ood(i[2])) for i in mosDict["L"]) / 2
+        # T_delta = -abs(sum(softexp(i[1], 5) for i in mosDict["T"])) / 2
+        # target += T_delta
+        optimizer.register(next_point, target)
+
+    print(optimizer.max)
+    editMOSNetlist(filename, **optimizer.max['params'])
+
+def optimizeL(filename, KP, RS):
+    optimizer = BayesianOptimization(
+        f=None,
+        pbounds={"KP": KP,
+                 "RS": RS},
+        verbose=0,
+        random_state=42,
+        allow_duplicate_points=False
+    )
+
+    utility = UtilityFunction(kind="ucb", kappa=2)
+    dup_counter = 0
+
+    for i in range(10):
+        print("Calibrating L... Iteration: " + str(i+1) + "/10", end="\r", flush=True)
         next_point = optimizer.suggest(utility)
         mosDict = runMOS(filename, **next_point)
         target = sum(-abs(ood(i[2])) for i in mosDict["S"])
         target += sum(-abs(ood(i[2])) for i in mosDict["L"])
-        T_delta = -abs(sum(softexp(i[1], 1) for i in mosDict["T"]))
-        target += T_delta
-        optimizer.register(next_point, target)
-
-        # print("Target S:", target)
-    print(optimizer.max)
+        try:
+            optimizer.register(next_point, target)
+        except NotUniqueError:
+            dup_counter += 1
+            if dup_counter > 2: break
+            continue
+    # print(optimizer.max)
     editMOSNetlist(filename, **optimizer.max['params'])
+
 
 # soft exponential activation function
 def softexp(x, threshold):
     if x <= threshold: return x
-    elif x > 5: return 100
-    else: return 2**(x-0.2)
+    elif x > 6: return 50
+    else: return 2**(x-0.5)
 
 def ood(x):
     # values towards 1 exponentially get lower, hence better
@@ -87,18 +114,19 @@ def ood(x):
 def optimize(filename, bounds):
     optimizeT(filename, bounds)
     optimizeS(filename, bounds)
-    print("Parameters optimized. Running cmd...")
-    print(os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -c '. core.cmd'\"", ).read())
+    optimizeL(filename, bounds["KP"], bounds["RS"])
+    print("\nParameters optimized. Running cmd...\n")
+    print(os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\"", ).read())
 
 
 if __name__ == "__main__":
     os.chdir("1855-3098")
 
-    bounds = {"VTO": (0.1, 3.95),
-                "KP": (0.1, 100),
-                "LAMBDA": (1e-2, 100),
+    bounds = {"VTO": (3, 3.9),
+                "KP": (0.1, 10),
+                "LAMBDA": (1e-2, 10),
                 "RS": (1e-6, 1e-2),
-                "RD": (1e-6, 1e-2)}
+                "RD": (1e-6, 1e-4)}
 
     # genMosCmd("core.cmd", extractMosText("mos_data.txt"), True)
     optimize("1855-3098.inc", bounds)
