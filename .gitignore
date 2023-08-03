@@ -1,6 +1,7 @@
 __pycache__
 .pytest_cache
 .vscode
+Samples
 
 # spice generated files
 .post_hist

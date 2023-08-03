@@ -4,7 +4,7 @@ from bayes_opt.event import Events
 from bayes_opt.logger import JSONLogger
 from bayes_opt.util import load_logs
 
-from util import extractCML, editCMLNetlist, editJson
+from util import extractCML, editCMLNetlist, editJson, change
 
 def runCML(filename, R1=None, R2=None, R3=None, R4=None, BF=None, RC=None, RE=None, RB=None, MCA_W=None):
     editCMLNetlist(filename, R1, R2, R3, R4, BF, RC, RE, RB, MCA_W)
@@ -33,9 +33,9 @@ def optimizeV(filename, bounds, VOH, VOL, delta):
         print("Calibrating VOH and VOL... Iteration " + str(i+1) + "/20", end="\r", flush=True)
         next_point = optimizer.suggest(utility)
         cmlDict = runCML(filename, **next_point)
-        target = -abs(cmlDict["Output VOH"] - VOH)
-        target += -abs(cmlDict["Output VOL"] - VOL)
-        target += -abs(cmlDict["Output Delta"] - delta) * 2
+        target = -abs(change(cmlDict["Output VOH"], VOH))
+        target += -abs(change(cmlDict["Output VOL"], VOL))
+        target += -abs(change(cmlDict["Output Delta"], delta)) * 2
         optimizer.register(next_point, target)
 
         # print("Output VOH:", cmlDict["Output VOH"])
@@ -45,7 +45,7 @@ def optimizeV(filename, bounds, VOH, VOL, delta):
     editCMLNetlist(filename, **optimizer.max['params'])
 
 
-def optimizeCurrent(filename, bounds, VOH, VOL, delta, IVCC):
+def optimizeCurrent(filename, bounds, VOH, VOL, Delta, IVCC):
     optimizer = BayesianOptimization(
         f=None,
         pbounds=bounds,
@@ -66,9 +66,9 @@ def optimizeCurrent(filename, bounds, VOH, VOL, delta, IVCC):
         print("Calibrating IVCC... Iteration " + str(i+1) + "/10", end="\r", flush=True)
         next_point = optimizer.suggest(utility)
         cmlDict = runCML(filename, **next_point)
-        target = -abs(cmlDict["IVCC"] - IVCC)
-        target += -abs((cmlDict["Output VOH"] - VOH) + (cmlDict["Output Delta"] - delta)) * 2
-        target += -abs(cmlDict["Output VOL"] - VOL) * 2
+        target = -abs(change(cmlDict["IVCC"], IVCC))
+        target += -abs(change(cmlDict["Output VOH"], VOH) + change(cmlDict["Output Delta"], Delta) ) * 2
+        target += -abs(change(cmlDict["Output VOL"], VOL))
         optimizer.register(params=next_point, target=target)
 
     editCMLNetlist(filename, **optimizer.max['params'])
@@ -77,12 +77,11 @@ def optimizeCurrent(filename, bounds, VOH, VOL, delta, IVCC):
 
 def optimize(filename, bounds, idealValues):
     optimizeV(filename, bounds, idealValues["VOH"], idealValues["VOL"], idealValues["Delta"])
-    optimizeCurrent(filename, bounds, idealValues["VOH"], idealValues["VOL"], idealValues["Delta"], idealValues["IVCC"])
+    optimizeCurrent(filename, bounds, **idealValues)
     print("\nParameters optimized. Running cmd...\n")
-    print(os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s - f-c '. core.cmd'\"", ).read())
+    print(os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\"", ).read())
 
 if __name__ == "__main__":
-    os.chdir("1822-6817")
 
     bounds = {"R1": (100, 1000),
                 "R2": (100, 1000),
@@ -99,4 +98,4 @@ if __name__ == "__main__":
                     "Delta": 0.8,
                     "IVCC": 0.13}
     
-    optimize("1822-6817.inc", bounds, idealValues)
+    optimize("1827-1339.inc", bounds, idealValues)

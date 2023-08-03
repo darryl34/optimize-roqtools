@@ -4,7 +4,7 @@ from bayes_opt.event import Events
 from bayes_opt.logger import JSONLogger
 from bayes_opt.util import load_logs
 
-from util import extractECL, editECLNetlist, editJson
+from util import extractECL, editECLNetlist, editJson, change
 
 
 def runECL(filename, RB1=None, RB2=None, MB1_W=None, MB2_W=None):
@@ -35,8 +35,8 @@ def optimizeV(filename, bounds, VOH, VOL):
         print("Calibrating VOH and VOL... Iteration: " + str(i+1) + "/15", end="\r", flush=True)
         next_point = optimizer.suggest(utility)
         eclDict = runECL(filename, **next_point)
-        target = -abs(eclDict["Output VOH"] - VOH)
-        target += -abs(eclDict["Output VOL"] - VOL)
+        target = -abs(change(eclDict["Output VOH"], VOH))
+        target += -abs(change(eclDict["Output VOL"], VOL))
         optimizer.register(next_point, target)
     print(optimizer.max)
     editECLNetlist(filename, **optimizer.max['params'])
@@ -52,7 +52,7 @@ def optimizeCurrent(filename, bounds, VOH, VOL, IAVDD):
     )
 
     # scale target values and load previous logs
-    editJson("logs.json", 0.5)
+    editJson("logs.json", 1)
     load_logs(optimizer, logs=["./logs.json"])
     os.remove("logs.json")  # delete after loading logs
 
@@ -60,12 +60,12 @@ def optimizeCurrent(filename, bounds, VOH, VOL, IAVDD):
 
 
     for i in range(10):
-        print("Calibrating IAVDD... Iteration: " + str(i+1) + "/10", end="\r", flush=True)
+        print("Calibrating IAVDD... Iteration: " + str(i+1) + "/10 ", end="\r", flush=True)
         next_point = optimizer.suggest(utility)
         eclDict = runECL(filename, **next_point)
-        target = -abs(eclDict["Analog Supply Current IAVDD"] - IAVDD)
-        target += -abs(eclDict["Output VOH"] - VOH) * 2
-        target += -abs(eclDict["Output VOL"] - VOL)
+        target = -abs(change(eclDict["Analog Supply Current IAVDD"], IAVDD))
+        target += -abs(change(eclDict["Output VOH"], VOH))
+        target += -abs(change(eclDict["Output VOL"], VOL))
         optimizer.register(next_point, target)
         # print("Target IAVDD:", target)
     print(optimizer.max)
@@ -79,15 +79,15 @@ def optimize(filename, bounds, idealValues):
     print(os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\"", ).read())
 
 if __name__ == "__main__":
-    os.chdir("1822-2408")
+    os.chdir("Samples/HSD/ECL/1821-0424")
 
     bounds = {"RB1": (100, 1000),
             "RB2": (100, 1000),
             "MB1_W": (1e-6,1e-4),
             "MB2_W": (1e-6,1e-4)}
     
-    idealValues = {"VOH": 2.32,
-                    "VOL": 1.5,
-                    "IAVDD": 0.17}
+    idealValues = {"VOH": 3.21,
+                    "VOL": 4.105,
+                    "IAVDD": 0.07}
 
-    optimize("1822-2408.inc", bounds, idealValues)
+    optimize("1821-0424.inc", bounds, idealValues)

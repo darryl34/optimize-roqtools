@@ -17,9 +17,9 @@ def extractLVDS(data):
 
 def editLVDSNetlist(filename, MPD1_W=None, MND1_W=None, KP=None, RD=None, RS=None):
     for line in fileinput.input(files=filename, inplace=True, encoding="utf-8"):
-        if MPD1_W and "MPD1" in line:
+        if MPD1_W and "MPD1" in line and '*' not in line:
             line = line.replace(line.split()[-1], "W=" + str(MPD1_W))
-        elif MND1_W and "MND1" in line:
+        elif MND1_W and "MND1" in line and '*' not in line:
             line = line.replace(line.split()[-1], "W=" + str(MND1_W))
         elif ".model PMOD_OUT" in line:
             if KP:
@@ -80,13 +80,13 @@ def extractCML(data):
 
 def editCMLNetlist(filename, R1=None, R2=None, R3=None, R4=None, BF=None, RC=None, RE=None, RB=None, MCA_W=None):
     for line in fileinput.input(files=filename, inplace=True, encoding="utf-8"):
-        if R1 and "R1" in line:
+        if R1 and "R1" in line and '*' not in line:
             line = line.replace(line.split()[-1], str(R1))
-        elif R2 and "R2" in line:
+        elif R2 and "R2" in line and '*' not in line:
             line = line.replace(line.split()[-1], str(R2))
-        elif R3 and "R3" in line:
+        elif R3 and "R3" in line and '*' not in line:
             line = line.replace(line.split()[-1], str(R3))
-        elif R4 and "R4" in line:
+        elif R4 and "R4" in line and '*' not in line:
             line = line.replace(line.split()[-1], str(R4))
         elif ".model QMOD_OUT" in line:
             if BF:
@@ -233,9 +233,8 @@ def editJson(filename, scale):
         line = line.replace(line.split()[1][:-1], str(target * scale)) 
         print(line, end="")
 
+def change(new, ori):
+    return (new - ori) / ori
+
 if __name__ == "__main__":
-    genMosCmd("test.cmd", extractMosText("1855-3098/mos_data.txt"), True)
-    # with open("1855-3098/test.txt", "r") as f:
-    #     data = f.read().splitlines()[1:]
-    # extractMOSCmd(data)
-    # editMOSNetlist("1855-3098/1855-3098.inc", VTO=0.5, KP=0.0001, LAMBDA=0.01, RS=0.1, RD=0.1)
+    pass

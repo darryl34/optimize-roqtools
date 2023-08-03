@@ -4,7 +4,7 @@ from bayes_opt.event import Events
 from bayes_opt.logger import JSONLogger
 from bayes_opt.util import load_logs
 
-from util import extractLVDS, editLVDSNetlist, editJson
+from util import extractLVDS, editLVDSNetlist, editJson, change
 
 
 def runLVDS(filename, MPD1_W=None, MND1_W=None, KP=None, RD=None, RS=None):
@@ -36,8 +36,9 @@ def optimizeVOH(filename, bounds, VOH, delta):
         print("Calibrating VOH... Iteration " + str(i+1) + "/20", end="\r", flush=True)
         next_point = optimizer.suggest(utility)
         lvdsDict = runLVDS(filename, **next_point)
-        targetVOH = -abs(lvdsDict["Output DOUTP"] - VOH) # always negated because we want to maximize
-        targetVOH += -abs(lvdsDict["Output delta"] - delta) * 4
+        # always negated because we want to maximize
+        targetVOH = -abs(change(lvdsDict["Output DOUTP"], VOH)) 
+        targetVOH += -abs(change(lvdsDict["Output delta"], delta)) * 2
         optimizer.register(params=next_point, target=targetVOH)
 
         # print("Output DOUTP:", lvdsDict["Output DOUTP"])
@@ -55,21 +56,23 @@ def optimizeVOL(filename, bounds, VOH, VOL, delta):
         allow_duplicate_points=True
     )
 
+    # scale vars
+    scaleJson = 5
+
     # scale target values and load previous logs
-    editJson("logs.json", 5)
+    editJson("logs.json", scaleJson)
     load_logs(optimizer, logs=["./logs.json"])
     os.remove("logs.json")  # delete after loading logs
 
     utility = UtilityFunction(kind="ucb", kappa=5)
 
-
     for i in range(15):
-        print("Calibrating VOL... Iteration " + str(i+1) + "/15", end="\r", flush=True)
+        print("Calibrating VOL... Iteration " + str(i+1) + "/15 ", end="\r", flush=True)
         next_point = optimizer.suggest(utility)
         lvdsDict = runLVDS(filename, **next_point)
-        target = -abs(lvdsDict["Output DOUTN"] - VOL) # always negated because we want to maximize
-        target += -abs(lvdsDict["Output DOUTP"] - VOH) * 2
-        target += -abs(lvdsDict["Output delta"] - delta) * 4
+        target = -abs(change(lvdsDict["Output DOUTN"], VOL))
+        target += -abs(change(lvdsDict["Output DOUTP"], VOH))
+        target += -abs(change(lvdsDict["Output delta"], delta))
         optimizer.register(params=next_point, target=target)
 
         # print("Output DOUTN:", lvdsDict["Output DOUTN"])
@@ -87,15 +90,17 @@ def optimize(filename, bounds, idealValues):
 
 
 if __name__ == "__main__":
-    testDir = "1822-2408"
+    testDir = "Samples/HSD/LVDS/1822-4877"
     os.chdir(testDir)
 
     bounds = {'MPD1_W': (1e-6,1e-3),
             'MND1_W': (1e-6,1e-3),
-            'KP': (1e-5,1e-3),
+            'KP': (1e-6,1e-3),
             'RD': (1,300),
             'RS': (1,300)}
     
-    idealValues = {"VOH": 1.41, "VOL": 1.05, "delta": 0.36}
+    idealValues = {"VOH": 1.6, 
+                   "VOL": 1.15, 
+                   "delta": 0.45}
 
-    optimize("1822-2408.inc", bounds, idealValues)
+    optimize("1822-4877.inc", bounds, idealValues)
