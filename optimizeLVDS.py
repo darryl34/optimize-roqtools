@@ -9,7 +9,10 @@ from util import extractLVDS, editLVDSNetlist, editJson, change
 
 def runLVDS(filename, MPD1_W=None, MND1_W=None, KP=None, RD=None, RS=None):
     editLVDSNetlist(filename, MPD1_W, MND1_W, KP, RD, RS)
-    data = os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\"").read()
+    if os.name == 'nt':
+        data = os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\"").read()
+    else:
+        data = os.popen("/mnt/c/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\" 2>/dev/null").read()
     data = data.splitlines()[1:]
     return extractLVDS(data)
 
@@ -86,13 +89,14 @@ def optimize(filename, bounds, idealValues):
     optimizeVOH(filename, bounds, idealValues["VOH"], idealValues["delta"])
     optimizeVOL(filename, bounds, idealValues["VOH"], idealValues["VOL"], idealValues["delta"])
     print("\nParameters optimized. Running cmd...\n")
-    print(os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\"", ).read())
-
+    if os.name == 'nt':
+        data = os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\"").read()
+    else:
+        data = os.popen("/mnt/c/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\" 2>/dev/null").read()
+    print(data)
 
 if __name__ == "__main__":
-    testDir = "Samples/HSD/LVDS/1822-4877"
-    os.chdir(testDir)
-
+    
     bounds = {'MPD1_W': (1e-6,1e-3),
             'MND1_W': (1e-6,1e-3),
             'KP': (1e-6,1e-3),
@@ -103,4 +107,4 @@ if __name__ == "__main__":
                    "VOL": 1.15, 
                    "delta": 0.45}
 
-    optimize("1822-4877.inc", bounds, idealValues)
+    optimize("1813-3032.inc", bounds, idealValues)

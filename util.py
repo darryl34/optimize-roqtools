@@ -16,7 +16,7 @@ def extractLVDS(data):
 
 
 def editLVDSNetlist(filename, MPD1_W=None, MND1_W=None, KP=None, RD=None, RS=None):
-    for line in fileinput.input(files=filename, inplace=True, encoding="utf-8"):
+    for line in fileinput.input(files=filename, inplace=True):
         if MPD1_W and "MPD1" in line and '*' not in line:
             line = line.replace(line.split()[-1], "W=" + str(MPD1_W))
         elif MND1_W and "MND1" in line and '*' not in line:
@@ -49,7 +49,7 @@ def extractECL(data):
     return ecl
 
 def editECLNetlist(filename, RB1=None, RB2=None, MB1_W=None, MB2_W=None):
-    for line in fileinput.input(files=filename, inplace=True, encoding="utf-8"):
+    for line in fileinput.input(files=filename, inplace=True):
         if RB1 and "RB1 %vcc" in line:
             line = line.replace(line.split()[-1], str(RB1))
         elif RB2 and "RB2 %vcc" in line:
@@ -79,7 +79,7 @@ def extractCML(data):
     return cml
 
 def editCMLNetlist(filename, R1=None, R2=None, R3=None, R4=None, BF=None, RC=None, RE=None, RB=None, MCA_W=None):
-    for line in fileinput.input(files=filename, inplace=True, encoding="utf-8"):
+    for line in fileinput.input(files=filename, inplace=True):
         if R1 and "R1" in line and '*' not in line:
             line = line.replace(line.split()[-1], str(R1))
         elif R2 and "R2" in line and '*' not in line:
@@ -165,7 +165,7 @@ def extractMOSCmd(data):
     l = []
 
     for line in data:
-        if line:
+        if line and len(line) > 1:
             if "T" == line[0]:
                 lst = line.split()
                 # Model VG, Delta

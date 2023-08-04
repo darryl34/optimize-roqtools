@@ -8,7 +8,10 @@ from util import extractCML, editCMLNetlist, editJson, change
 
 def runCML(filename, R1=None, R2=None, R3=None, R4=None, BF=None, RC=None, RE=None, RB=None, MCA_W=None):
     editCMLNetlist(filename, R1, R2, R3, R4, BF, RC, RE, RB, MCA_W)
-    data = os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\"").read()
+    if os.name == 'nt':
+        data = os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\"").read()
+    else:
+        data = os.popen("/mnt/c/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\" 2>/dev/null").read()
     data = data.splitlines()[1:]
     return extractCML(data)
 
@@ -41,7 +44,7 @@ def optimizeV(filename, bounds, VOH, VOL, delta):
         # print("Output VOH:", cmlDict["Output VOH"])
         # print("Target VOH:", target)
         # print("Next point:", next_point)
-    print(optimizer.max)
+    # print(optimizer.max)
     editCMLNetlist(filename, **optimizer.max['params'])
 
 
@@ -79,7 +82,11 @@ def optimize(filename, bounds, idealValues):
     optimizeV(filename, bounds, idealValues["VOH"], idealValues["VOL"], idealValues["Delta"])
     optimizeCurrent(filename, bounds, **idealValues)
     print("\nParameters optimized. Running cmd...\n")
-    print(os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\"", ).read())
+    if os.name == 'nt':
+        data = os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\"").read()
+    else:
+        data = os.popen("/mnt/c/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\" 2>/dev/null").read()
+    print(data)
 
 if __name__ == "__main__":
 
@@ -98,4 +105,4 @@ if __name__ == "__main__":
                     "Delta": 0.8,
                     "IVCC": 0.13}
     
-    optimize("1827-1339.inc", bounds, idealValues)
+    optimize("1822-6817.inc", bounds, idealValues)

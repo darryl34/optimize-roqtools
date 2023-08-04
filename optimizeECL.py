@@ -9,7 +9,10 @@ from util import extractECL, editECLNetlist, editJson, change
 
 def runECL(filename, RB1=None, RB2=None, MB1_W=None, MB2_W=None):
     editECLNetlist(filename, RB1, RB2, MB1_W, MB2_W)
-    data = os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\"").read()
+    if os.name == 'nt':
+        data = os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\"").read()
+    else:
+        data = os.popen("/mnt/c/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\" 2>/dev/null").read()
     data = data.splitlines()[1:]
     return extractECL(data)
 
@@ -38,7 +41,7 @@ def optimizeV(filename, bounds, VOH, VOL):
         target = -abs(change(eclDict["Output VOH"], VOH))
         target += -abs(change(eclDict["Output VOL"], VOL))
         optimizer.register(next_point, target)
-    print(optimizer.max)
+    # print(optimizer.max)
     editECLNetlist(filename, **optimizer.max['params'])
 
 
@@ -68,7 +71,7 @@ def optimizeCurrent(filename, bounds, VOH, VOL, IAVDD):
         target += -abs(change(eclDict["Output VOL"], VOL))
         optimizer.register(next_point, target)
         # print("Target IAVDD:", target)
-    print(optimizer.max)
+    # print(optimizer.max)
     editECLNetlist(filename, **optimizer.max['params'])
 
 
@@ -76,10 +79,13 @@ def optimize(filename, bounds, idealValues):
     optimizeV(filename, bounds, idealValues["VOH"], idealValues["VOL"])
     optimizeCurrent(filename, bounds, **idealValues)
     print("\nParameters optimized. Running cmd...\n")
-    print(os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\"", ).read())
+    if os.name == 'nt':
+        data = os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\"").read()
+    else:
+        data = os.popen("/mnt/c/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\" 2>/dev/null").read()
+    print(data)
 
 if __name__ == "__main__":
-    os.chdir("Samples/HSD/ECL/1821-0424")
 
     bounds = {"RB1": (100, 1000),
             "RB2": (100, 1000),
