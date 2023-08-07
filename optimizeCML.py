@@ -20,7 +20,6 @@ def optimizeV(filename, bounds, VOH, VOL, delta):
         f=None,
         pbounds=bounds,
         verbose=2,
-        random_state=42,
         allow_duplicate_points=True
     )
 
@@ -53,7 +52,6 @@ def optimizeCurrent(filename, bounds, VOH, VOL, Delta, IVCC):
         f=None,
         pbounds=bounds,
         verbose=2,
-        random_state=42,
         allow_duplicate_points=True
     )
 
@@ -66,7 +64,7 @@ def optimizeCurrent(filename, bounds, VOH, VOL, Delta, IVCC):
 
 
     for i in range(10):
-        print("Calibrating IVCC... Iteration " + str(i+1) + "/10", end="\r", flush=True)
+        print("Calibrating IVCC... Iteration " + str(i+1) + "/10        ", end="\r", flush=True)
         next_point = optimizer.suggest(utility)
         cmlDict = runCML(filename, **next_point)
         target = -abs(change(cmlDict["IVCC"], IVCC))

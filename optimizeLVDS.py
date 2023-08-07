@@ -23,7 +23,6 @@ def optimizeVOH(filename, bounds, VOH, delta):
         f=None,
         pbounds=bounds,
         verbose=2,
-        random_state=42,
         allow_duplicate_points=True
     )
 
@@ -35,7 +34,7 @@ def optimizeVOH(filename, bounds, VOH, delta):
     utility = UtilityFunction(kind="ucb", kappa=5)
 
 
-    for i in range(20):
+    for i in range(15):
         print("Calibrating VOH... Iteration " + str(i+1) + "/20", end="\r", flush=True)
         next_point = optimizer.suggest(utility)
         lvdsDict = runLVDS(filename, **next_point)
@@ -55,7 +54,6 @@ def optimizeVOL(filename, bounds, VOH, VOL, delta):
         f=None,
         pbounds=bounds,
         verbose=2,
-        random_state=42,
         allow_duplicate_points=True
     )
 
@@ -96,7 +94,7 @@ def optimize(filename, bounds, idealValues):
     print(data)
 
 if __name__ == "__main__":
-    
+
     bounds = {'MPD1_W': (1e-6,1e-3),
             'MND1_W': (1e-6,1e-3),
             'KP': (1e-6,1e-3),
@@ -106,5 +104,4 @@ if __name__ == "__main__":
     idealValues = {"VOH": 1.6, 
                    "VOL": 1.15, 
                    "delta": 0.45}
-
     optimize("1813-3032.inc", bounds, idealValues)
