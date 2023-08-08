@@ -1,12 +1,13 @@
 import fileinput
+import os
+import subprocess
 
 # ---- LVDS ---- #
 def extractLVDS(data):
     # dict of output data
     lvds = {"Output DOUTP": 0,
             "Output DOUTN": 0,
-            "Output delta": 0,
-            "Output com": 0}
+            "Output delta": 0}
     
     for line in data:
         for key in lvds.keys():
@@ -15,19 +16,28 @@ def extractLVDS(data):
     return lvds
 
 
-def editLVDSNetlist(filename, MPD1_W=None, MND1_W=None, KP=None, RD=None, RS=None):
+def editLVDSNetlist(filename, MPD1_W=None, MND1_W=None, 
+                    P_KP=None, P_RD=None, P_RS=None, 
+                    N_KP=None, N_RD=None, N_RS=None):
     for line in fileinput.input(files=filename, inplace=True):
         if MPD1_W and "MPD1" in line and '*' not in line:
             line = line.replace(line.split()[-1], "W=" + str(MPD1_W))
         elif MND1_W and "MND1" in line and '*' not in line:
             line = line.replace(line.split()[-1], "W=" + str(MND1_W))
         elif ".model PMOD_OUT" in line:
-            if KP:
-                line = line.replace(line.split()[5], "KP=" + str(KP))
-            if RD:
-                line = line.replace(line.split()[6], "RD=" + str(RD))
-            if RS:
-                line = line.replace(line.split()[7], "RS=" + str(RS))
+            if P_KP:
+                line = line.replace(line.split()[5], "KP=" + str(P_KP))
+            if P_RD:
+                line = line.replace(line.split()[6], "RD=" + str(P_RD))
+            if P_RS:
+                line = line.replace(line.split()[7], "RS=" + str(P_RS))
+        elif ".model NMOD_OUT" in line:
+            if N_KP:
+                line = line.replace(line.split()[5], "KP=" + str(N_KP))
+            if N_RD:
+                line = line.replace(line.split()[6], "RD=" + str(N_RD))
+            if N_RS:
+                line = line.replace(line.split()[7], "RS=" + str(N_RS))
         print(line, end="")
 
 
@@ -36,7 +46,6 @@ def extractECL(data):
     ecl = {"Output VOH": 0,
             "Output VOL": 0,
             "Output Delta": 0,
-            "Output VCM": 0,
             "Analog Supply Current IAVDD": 0}
     
     for line in data:
@@ -66,7 +75,6 @@ def extractCML(data):
     cml = {"Output VOH": 0,
             "Output VOL": 0,
             "Output Delta": 0,
-            "Output VCM": 0,
             "IVCC": 0}
     
     for line in data:
@@ -182,7 +190,7 @@ def extractMOSCmd(data):
     return {"T": t, "S": s, "L": l}
 
 def editMOSNetlist(filename, VTO=None, KP=None, LAMBDA=None, RS=None, RD=None):
-    with fileinput.input(files=filename, inplace=True, encoding="utf-8") as f:
+    with fileinput.input(files=filename, inplace=True) as f:
         for line in f:
             if "LAMBDA" in line:
                 if VTO:
@@ -198,6 +206,12 @@ def editMOSNetlist(filename, VTO=None, KP=None, LAMBDA=None, RS=None, RD=None):
                     line = line.replace(line.split()[2], "RD=" + str(RD))
             print(line, end="")
 
+
+def runCmd():
+    if os.name == 'nt':
+        return subprocess.run(["C:/KD/cygwin-roq/bin/bash.exe", "-i", "-c", "/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'"], capture_output=True, text=True).stdout
+    else:
+        return subprocess.run(["/mnt/c/KD/cygwin-roq/bin/bash.exe", "-i", "-c", "/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'"], capture_output=True, text=True).stdout
 
 # ---- Helper functions ---- #
 def splitList(lst, sep):
@@ -233,8 +247,8 @@ def editJson(filename, scale):
         line = line.replace(line.split()[1][:-1], str(target * scale)) 
         print(line, end="")
 
-def change(new, ori):
-    return (new - ori) / ori
+def penaltyFunc(x, target, scale=-10):
+    return scale*(x - target)**2
 
 if __name__ == "__main__":
     pass

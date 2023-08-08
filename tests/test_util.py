@@ -6,21 +6,20 @@ Functions to test the util.py module
 '''
 
 def test_extractLVDS():
-    data = ["Output DOUTP : 1.2", "Output DOUTN : 0.8", "Output delta : 400m", "Output com : 0.5"]
+    data = ["Output DOUTP : 1.2", "Output DOUTN : 0.8", "Output delta : 400m"]
     lvdsDict = extractLVDS(data)
     assert lvdsDict["Output DOUTP"] == 1.2
     assert lvdsDict["Output DOUTN"] == 0.8
     assert lvdsDict["Output delta"] == 0.4
-    assert lvdsDict["Output com"] == 0.5
 
 def test_editLVDSNetlist():
     # Generate test file
     filename = "testLVDS.txt"
     with open(filename, "w") as f:
-        f.write("MPD1 W=1\nMND1 W=1\n.model PMOD_OUT UCBMOS PMOS VTO=-0.7 KP=30u RD=200.5 RS=200.5\n")
+        f.write("MPD1 W=1\nMND1 W=1\n.model PMOD_OUT UCBMOS PMOS VTO=-0.7 KP=30u RD=200.5 RS=200.5\n.model NMOD_OUT UCBMOS NMOS VTO=0.7 KP=30u RD=200.5 RS=200.5\n")
     
     # Edit test file
-    editLVDSNetlist(filename, MPD1_W=0.5, MND1_W=0.5, KP=0.0001, RD=1000, RS=1000)
+    editLVDSNetlist(filename, MPD1_W=0.5, MND1_W=0.5, P_KP=0.0001, N_KP=0.0001, P_RD=1000, N_RD=1000, P_RS=1000, N_RS=1000)
     
     # Check if test file was edited correctly
     with open(filename, "r") as f:
@@ -35,12 +34,11 @@ def test_editLVDSNetlist():
     os.remove(filename)
 
 def test_extractECL():
-    data = ["Output VOH : 1.2", "Output VOL : 0.8", "Output Delta : 0.4", "Output VCM : 0.5", "Analog Supply Current IAVDD : 0.6"]
+    data = ["Output VOH : 1.2", "Output VOL : 0.8", "Output Delta : 0.4", "Analog Supply Current IAVDD : 0.6"]
     eclDict = extractECL(data)
     assert eclDict["Output VOH"] == 1.2
     assert eclDict["Output VOL"] == 0.8
     assert eclDict["Output Delta"] == 0.4
-    assert eclDict["Output VCM"] == 0.5
     assert eclDict["Analog Supply Current IAVDD"] == 0.6
 
 def test_editECLNetlist():
@@ -64,12 +62,11 @@ def test_editECLNetlist():
     os.remove(filename)
 
 def test_extractCML():
-    data = ["Output VOH : 1.2", "Output VOL : 0.8", "Output Delta : 0.4", "Output VCM : 0.5", "Analog Supply Current () IVCC : 0.6"]
+    data = ["Output VOH : 1.2", "Output VOL : 0.8", "Output Delta : 0.4", "Analog Supply Current () IVCC : 0.6"]
     cmlDict = extractCML(data)
     assert cmlDict["Output VOH"] == 1.2
     assert cmlDict["Output VOL"] == 0.8
     assert cmlDict["Output Delta"] == 0.4
-    assert cmlDict["Output VCM"] == 0.5
     assert cmlDict["IVCC"] == 0.6
 
 def test_editCMLNetlist():
