@@ -10,12 +10,11 @@ def runLVDS(filename, params):
     return extractLVDS(data)
 
 
-def optimizeVOH(filename, bounds, VOH, VOL):
+def optimize(filename, bounds, VOH, VOL):
     # optimizer object initialization
     optimizer = BayesianOptimization(
         f=None,
         pbounds=bounds,
-        verbose=2,
         allow_duplicate_points=True
     )
 
@@ -33,18 +32,17 @@ def optimizeVOH(filename, bounds, VOH, VOL):
         optimizer.register(next_point, target)
 
     # print("Current best: " + str(optimizer.max['target']))
-    # editLVDSNetlist(filename, **optimizer.max['params'])
     return optimizer.max
 
 
 # main optimization function
-def optimize(filename, bounds, idealValues):
+def run(filename, bounds, idealValues):
     res = []
     errorThreshold = -0.1  # must be < 0
 
     for i in range(5):
         print("Calibrating... Iteration " + str(i+1) + "/5", end="\r", flush=True)
-        curr = optimizeVOH(filename, bounds, **idealValues)
+        curr = optimize(filename, bounds, **idealValues)
         res.append(curr)
         if curr['target'] > errorThreshold:
             break
@@ -72,4 +70,4 @@ if __name__ == "__main__":
     idealValues = {"VOH": 1.6, 
                    "VOL": 1.15}
 
-    optimize("1822-4877.inc", bounds, idealValues)
+    run("1822-4877.inc", bounds, idealValues)

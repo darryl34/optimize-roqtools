@@ -12,7 +12,6 @@ def optimizeV(filename, bounds, VOH, VOL, IVCC):
     optimizer = BayesianOptimization(
         f=None,
         pbounds=bounds,
-        verbose=2,
         allow_duplicate_points=True
     )
 
@@ -30,7 +29,6 @@ def optimizeV(filename, bounds, VOH, VOL, IVCC):
         optimizer.register(next_point, target)
 
     print(optimizer.max)
-    editCMLNetlist(filename, **optimizer.max['params'])
     return optimizer.max
 
 

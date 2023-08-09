@@ -10,23 +10,16 @@ def runECL(filename, RB1=None, RB2=None, MB1_W=None, MB2_W=None):
     return extractECL(data)
 
 
-def optimizeCurrent(filename, bounds, VOH, VOL, IAVDD):
+def optimize(filename, bounds, VOH, VOL, IAVDD):
     optimizer = BayesianOptimization(
         f=None,
         pbounds=bounds,
-        verbose=2,
         allow_duplicate_points=True
     )
 
-    # scale target values and load previous logs
-    # editJson("logs.json", 1)
-    # load_logs(optimizer, logs=["./logs.json"])
-    # os.remove("logs.json")  # delete after loading logs
-
     utility = UtilityFunction(kind="ucb", kappa=5)
 
-
-    for i in range(10):
+    for _ in range(10):
         next_point = optimizer.suggest(utility)
         eclDict = runECL(filename, **next_point)
         target = penaltyFunc(eclDict["Output VOH"], VOH, -20)
@@ -35,17 +28,16 @@ def optimizeCurrent(filename, bounds, VOH, VOL, IAVDD):
         optimizer.register(next_point, target)
     
     print(optimizer.max)
-    # editECLNetlist(filename, **optimizer.max['params'])
     return optimizer.max
 
 
-def optimize(filename, bounds, idealValues):
+def run(filename, bounds, idealValues):
     res = []
     errorThreshold = -0.1  # must be < 0
 
     for i in range(5):
         print("Calibrating... Iteration " + str(i+1) + "/5", end="\r", flush=True)
-        curr = optimizeCurrent(filename, bounds, **idealValues)
+        curr = optimize(filename, bounds, **idealValues)
         res.append(curr)
         if curr['target'] > errorThreshold:
             break
@@ -56,6 +48,7 @@ def optimize(filename, bounds, idealValues):
 
     print("\nParameters optimized. Running cmd...\n")
     print(runCmd())
+
 
 if __name__ == "__main__":
 
@@ -68,4 +61,4 @@ if __name__ == "__main__":
                     "VOL": 1.5,
                     "IAVDD": 0.17}
     
-    optimize("1822-2408.inc", bounds, idealValues)
+    run("1822-2408.inc", bounds, idealValues)
