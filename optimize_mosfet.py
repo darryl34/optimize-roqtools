@@ -4,15 +4,11 @@ from bayes_opt.event import Events
 from bayes_opt.logger import JSONLogger
 from bayes_opt.util import load_logs, NotUniqueError
 
-from util import extractMOSCmd, extractMosText, genMosCmd, editMOSNetlist, editJson
+from util import extractMOSCmd, extractMosText, genMosCmd, editMOSNetlist, editJson, runCmd
 
 def runMOS(filename, VTO=None, KP=None, LAMBDA=None, RS=None, RD=None):
     editMOSNetlist(filename, VTO, KP, LAMBDA, RS, RD)
-    if os.name == 'nt':
-        data = os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\"").read()
-    else:
-        data = os.popen("/mnt/c/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\" 2>/dev/null").read()
-    data = data.splitlines()[1:]
+    data = runCmd().splitlines()[1:]
     return extractMOSCmd(data)
 
 
@@ -123,11 +119,7 @@ def optimize(filename, bounds):
     res = optimizeT(filename, bounds)
     optimizeL(filename, bounds["KP"], bounds["RS"], bounds["RD"], res)
     print("\nParameters optimized. Running cmd...\n")
-    if os.name == 'nt':
-        data = os.popen("C:/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\"").read()
-    else:
-        data = os.popen("/mnt/c/KD/cygwin-roq/bin/bash.exe -i -c \"/cygdrive/c/espy/roq/bin/hpspice.exe -s -f -c '. core.cmd'\" 2>/dev/null").read()
-    print(data)
+    print(runCmd())
 
 
 if __name__ == "__main__":
