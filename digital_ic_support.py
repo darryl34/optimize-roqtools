@@ -30,8 +30,8 @@ import digital_ic_gui
 import lib_digital_ic
 
 # Global members
-PIN_LIST       = []
-pin_count      = 0
+PIN_LIST = []
+pin_count = 0
 
 def main(*args):
     '''Main entry point for the application.'''
@@ -46,8 +46,6 @@ def main(*args):
 
 def copyBtnClicked(*args):
     print('digital_ic_support.copyBtnClicked')
-    for arg in args:
-        print ('another arg:', arg)
     # Copy the content inside the result box, to be update
     pc.copy(_w1.Scrolledtext1.get("1.0", tk.END))
     sys.stdout.flush()
@@ -55,8 +53,6 @@ def copyBtnClicked(*args):
 
 def submitLvdsBtnClicked(*args):
     print('digital_ic_support.submitLvdsBtnClicked')
-    for arg in args:
-        print ('another arg:', arg)
     sys.stdout.flush()
 
     # Generate model
@@ -65,7 +61,7 @@ def submitLvdsBtnClicked(*args):
     
     # Generate model
     print("[INFO] Generating model ...", flush=True)
-    reg_model = lib_digital_ic.main_gen_lvds(pin_list=PIN_LIST, pGND=_w1.gndPinNum.get(), pVCC=_w1.vccPinNum.get(),
+    reg_model = lib_digital_ic.main_gen_lvds_model(pin_list=PIN_LIST, pGND=_w1.gndPinNum.get(), pVCC=_w1.vccPinNum.get(),
                     pVEE=_w1.veePinNum.get(), res_shorts=shorts, kpn=_w1.kpn.get())
 
     _w1.Scrolledtext1.configure(state='normal')
@@ -121,43 +117,8 @@ def submitLvdsBtnClicked(*args):
     print("[INFO] LVDS modelling completed", flush=True)
 
 
-def createEclBtnClicked(*args):
-    print('digital_ic_support.createEclBtnClicked')
-    for arg in args:
-        print ('another arg:', arg)
-    sys.stdout.flush()
-
-    # Clear existing output
-    _w1.Scrolledtext1.configure(state='normal')
-    _w1.Scrolledtext1.delete("1.0", tk.END)
-    _w1.Scrolledtext1.configure(state='disabled')
-
-    # Check for user's input on model settings and generate for harness and cmd
-    global _top3, _w3
-    _top3 = tk.Toplevel(root)
-    _w3 = digital_ic_gui.Toplevel3(_top3)
-
-def fillEclBtnClicked(*args):  
-    print('digital_ic_support.fillEclBtnClicked')
-    for arg in args:
-        print ('another arg:', arg)
-    sys.stdout.flush()
-
-    _w3.eclMl2wn2aL.set("2u")
-    _w3.eclMl2wn2aW.set("78u")
-    _w3.rVee.set("75K")
-    _w3.rVcc.set("37k")
-    _w3.rB1.set("195")
-    _w3.rB2.set("125")
-    _w3.mb1_L.set("2u")
-    _w3.mb1_W.set("60u")
-    _w3.mb2_L.set("2u")
-    _w3.mb2_W.set("10u")
-
 def submitEclBtnClicked(*args):
     print('digital_ic_support.submitEclBtnClicked')
-    for arg in args:
-        print ('another arg:', arg)
     sys.stdout.flush()
 
     # Generate model
@@ -165,62 +126,20 @@ def submitEclBtnClicked(*args):
     shorts = lib_digital_ic.short_similar_pins(pin_list=PIN_LIST, resistance="1")
     # Generate model
     print("[INFO] Generating model ...", flush=True)
-    reg_model = ""
     
     # Generating model based on user's inputs
-    reg_model += lib_digital_ic.gen_ecl_model(pin_list=PIN_LIST, pGND=_w1.gndPinNum.get(), pVCC=_w1.vccPinNum.get(), pVEE=_w1.veePinNum.get(), 
-                                                res_shorts=shorts,kpn=_w1.kpn.get()) 
-    reg_model += lib_digital_ic.gen_ecl_mcl(pVCC=_w1.vccPinNum.get(),  pGND=_w1.gndPinNum.get(), pVEE=_w1.veePinNum.get(), 
-                                                L_ml2wn2a=_w3.eclMl2wn2aL.get(), W_ml2wn2a=_w3.eclMl2wn2aW.get())
-    reg_model += ".ends\n"
-    reg_model += lib_digital_ic.gen_ecl_inp_subckt(pGND=_w1.gndPinNum.get(), pVEE=_w1.veePinNum.get(), rVEE=_w3.rVee.get(), rVCC=_w3.rVcc.get(), kpn=_w1.kpn.get())
-    reg_model += lib_digital_ic.gen_ecl_outp_subckt(rB1=_w3.rB1.get(), rB2=_w3.rB2.get(), 
-                                                    mb1_L=_w3.mb1_L.get(), mb1_W=_w3.mb1_W.get(), mb2_L=_w3.mb2_L.get(), mb2_W=_w3.mb2_W.get(), kpn=_w1.kpn.get())                                            
-    reg_model += "*******************************************************************\n"
-    reg_model += "********************** SUB-CIRCUIT ********************************\n"
-    reg_model += "*******************************************************************\n"
-    reg_model += "\n"
+    reg_model = lib_digital_ic.main_gen_ecl_model(pin_list=PIN_LIST, pGND=_w1.gndPinNum.get(),
+                                                  pVCC=_w1.vccPinNum.get(), pVEE=_w1.veePinNum.get(),
+                                                  res_shorts=shorts, kpn=_w1.kpn.get())
 
     _w1.Scrolledtext1.configure(state='normal')
     _w1.Scrolledtext1.insert(tk.INSERT, reg_model)
     _w1.Scrolledtext1.configure(state='disabled')
     print("[INFO] Generating model ... done", flush=True)
 
-    # Open kpn.inc file and write reg_model into kpn.inc
-    if os.path.exists('{}.inc'.format(_w1.kpn.get())):  
-        print("File exist\n")
-        model_config = ""
-        config_written = False 
-        #inserting header and ratings section into model template file
-        with open('{}.inc'.format(_w1.kpn.get()), 'r+') as f: #r+ does the work of rw
-            lines = f.readlines()
-            if len(lines)>0 and lines[0].startswith('* Start of model for '):
-                for i, line in enumerate(lines):
-                    if line.startswith('* Model for '):
-                        # empty or remove the line
-                        model_config += ""                        
-                    elif line.startswith('*'):
-                        model_config += lines[i]
-                    else:
-                        if not config_written: 
-                            model_config += reg_model
-                            config_written = True
-                        else: 
-                            # empty or remove the line
-                            model_config += ""
-                
-                f.seek(0) #back to first line in the file
-                f.truncate(0) # clear all text in the file, need '0' when using r+
-                for line in model_config:
-                    f.write(line)
-            else:
-                print("No lines found\n")
-        
-    else: 
-        #print("Create a new file\n")
-        wf = open('{}.inc'.format(_w1.kpn.get()), "w")
-        wf.write(reg_model)
-        wf.close()
+    # Create new .inc file
+    with open("{}.inc".format(_w1.kpn.get()), "w") as f:
+        f.write(reg_model)
 
     _w1.Scrolledtext1.configure(state='normal')
     _w1.Scrolledtext1.insert(tk.INSERT, "\n\n*******************************************************************\n")
@@ -238,9 +157,8 @@ def submitEclBtnClicked(*args):
     _w1.Scrolledtext1.configure(state='disabled')
 
     # Open harness.cki file and write reg_harness into ds.cki
-    wf = open("fixture.cki", "w")
-    wf.write(reg_harness)
-    wf.close()
+    with open("fixture.cki", "w") as f:
+        f.write(reg_harness)
     print("[INFO] Generating harness ... done", flush=True)
     
     _w1.Scrolledtext1.configure(state='normal')
@@ -257,9 +175,8 @@ def submitEclBtnClicked(*args):
     _w1.Scrolledtext1.insert(tk.INSERT, reg_core_cmd)
     _w1.Scrolledtext1.configure(state='disabled')
     # create core.cmd and write reg_core_cmd into cmd
-    wf = open("core.cmd", "w")
-    wf.write(reg_core_cmd)
-    wf.close()
+    with open("core.cmd", "w") as f:
+        f.write(reg_core_cmd)
     print("[INFO] Generating core.cmd ... done", flush=True)
     
     # Execute . core.cmd
@@ -268,13 +185,9 @@ def submitEclBtnClicked(*args):
     #print("[INFO] Generating stress.cmd ... done", flush=True)
     print("[INFO] ECL modelling completed", flush=True)
     
-    # Close second window
-    _top3.withdraw() 
 
 def createCmlBtnClicked(*args):
     print('digital_ic_support.createCmlBtnClicked')
-    for arg in args:
-        print ('another arg:', arg)
     sys.stdout.flush()
 
     # Clear existing output
@@ -289,8 +202,6 @@ def createCmlBtnClicked(*args):
 
 def fillCmlBtnClicked(*args):  
     print('digital_ic_support.fillEclBtnClicked')
-    for arg in args:
-        print ('another arg:', arg)
     sys.stdout.flush()
 
     _w4.rPD.set("38")
@@ -316,57 +227,18 @@ def submitCmlBtnClicked(*args):
     reg_model = ""
     
     # Generating model based on user's inputs
-    reg_model += lib_digital_ic.gen_cml_model(pin_list=PIN_LIST, pGND=_w1.gndPinNum.get(), pVCC=_w1.vccPinNum.get(), pVEE=_w1.veePinNum.get(), 
-                                                current=_w4.rPDCurrent.get(), voltage=_w4.rPDVoltage.get(), rPD=_w4.rPD.get(), res_shorts=shorts,kpn=_w1.kpn.get()) 
-    reg_model += ".ends\n"
-    reg_model += lib_digital_ic.gen_cml_subckt(dVolt=_w4.dVoltage.get(), dCurrent=_w4.dCurrent.get(), dN=_w4.dN.get(), dIS=_w4.dIS.get(), dRS=_w4.dRS.get(), 
-                                                kpn=_w1.kpn.get())
-                                                
-    reg_model += "*******************************************************************\n"
-    reg_model += "********************** SUB-CIRCUIT ********************************\n"
-    reg_model += "*******************************************************************\n"
-    reg_model += "\n"
+    reg_model += lib_digital_ic.main_gen_cml_model(pin_list=PIN_LIST, pGND=_w1.gndPinNum.get(),
+                                                   pVCC=_w1.vccPinNum.get(), pVEE=_w1.veePinNum.get(),
+                                                   res_shorts=shorts,kpn=_w1.kpn.get()) 
 
     _w1.Scrolledtext1.configure(state='normal')
     _w1.Scrolledtext1.insert(tk.INSERT, reg_model)
     _w1.Scrolledtext1.configure(state='disabled')
     print("[INFO] Generating model ... done", flush=True)
 
-    # Open kpn.inc file and write reg_model into kpn.inc
-    if os.path.exists('{}.inc'.format(_w1.kpn.get())):  
-        print("File exist\n")
-        model_config = ""
-        config_written = False 
-        #inserting header and ratings section into model template file
-        with open('{}.inc'.format(_w1.kpn.get()), 'r+') as f: #r+ does the work of rw
-            lines = f.readlines()
-            if len(lines)>0 and lines[0].startswith('* Start of model for '):
-                for i, line in enumerate(lines):
-                    if line.startswith('* Model for '):
-                        # empty or remove the line
-                        model_config += ""                        
-                    elif line.startswith('*'):
-                        model_config += lines[i]
-                    else:
-                        if not config_written: 
-                            model_config += reg_model
-                            config_written = True
-                        else: 
-                            # empty or remove the line
-                            model_config += ""
-                
-                f.seek(0) #back to first line in the file
-                f.truncate(0) # clear all text in the file, need '0' when using r+
-                for line in model_config:
-                    f.write(line)
-            else:
-                print("No lines found\n")
-        
-    else: 
-        #print("Create a new file\n")
-        wf = open('{}.inc'.format(_w1.kpn.get()), "w")
-        wf.write(reg_model)
-        wf.close()
+    # Create new .inc file
+    with open('{}.inc'.format(_w1.kpn.get()), 'w') as f:
+        f.write(reg_model)
 
     _w1.Scrolledtext1.configure(state='normal')
     _w1.Scrolledtext1.insert(tk.INSERT, "\n\n*******************************************************************\n")
@@ -416,9 +288,6 @@ def submitCmlBtnClicked(*args):
     #print("[INFO] Generating cmd_eff ... done", flush=True)
     print("[INFO] CML modelling completed", flush=True)
     
-    # Close second window
-    _top4.withdraw() 
-
 
 def loadPinBtnClicked(*args):
     print('digital_ic_support.loadPinBtnClicked')
@@ -431,7 +300,7 @@ def loadPinBtnClicked(*args):
         if pininfo:
             global PIN_LIST, pin_count, search_list, ser_pin_list
             #pininfo = _w1.pinInfoText.get("1.0","end-1c")
-            pininfo = pininfo.split('\n')
+            pininfo = pininfo.splitlines()
             pin = []
             for x in pininfo:
                 temp = x.split()
@@ -517,10 +386,14 @@ def clrList():
     _w1.Listbox1.selection_clear(0, tk.END)
     sel_pin_list = []
 
+
 def resetBtnClicked(*args):
     print('digital_ic_support.resetBtnClicked')
-    for arg in args:
-        print ('another arg:', arg)
+    clearPinInfo()
+    clearScrollText()
+    sys.stdout.flush()
+
+def clearPinInfo():
     _w1.vccPinEntry.delete(0, tk.END)
     _w1.gndPinEntry.delete(0, tk.END)
     _w1.veePinEntry.delete(0, tk.END)
@@ -528,32 +401,17 @@ def resetBtnClicked(*args):
     _w1.inselPinEntry.delete(0, tk.END)
     _w1.refPinEntry.delete(0, tk.END)
     _w1.vtrPinEntry.delete(0, tk.END)
-    _w1.kpn.delete(0, tk.END)
-    _w1.vcc.delete(0, tk.END)
-    _w1.vpos.delete(0, tk.END)
-    _w1.vneg.delete(0, tk.END)
-    _w1.vee.delete(0, tk.END)
-    _w1.vtt.delete(0, tk.END)
+    _w1.kpn.set('')
+    _w1.vcc.set('')
+    _w1.vpos.set('')
+    _w1.vneg.set('')
+    _w1.vee.set('')
+    _w1.vtt.set('')
+
+def clearScrollText():
     _w1.Scrolledtext1.configure(state='normal')
     _w1.Scrolledtext1.delete("1.0", tk.END)
     _w1.Scrolledtext1.configure(state='disabled')
 
-    sys.stdout.flush()
-
-
-def exitEclBtnClicked(*args):
-    print('digital_ic_support.submitEclBtnClicked')
-    for arg in args:
-        print ('another arg:', arg)
-    sys.stdout.flush()
-    _top3.withdraw() 
-
-def exitCmlBtnClicked(*args):
-    print('digital_ic_support.submitCmlBtnClicked')
-    for arg in args:
-        print ('another arg:', arg)
-    sys.stdout.flush()
-    _top4.withdraw() 
-
 if __name__ == '__main__':
-    digital_ic_gui.start_up()
+    main()
