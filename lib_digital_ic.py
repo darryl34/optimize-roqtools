@@ -19,21 +19,32 @@ import re
 MAX_PIN_COUNT = 50
 
 
-def gen_lvds_model(pin_list, pGND=None, pVCC=None, pVEE=None, rcss=None, rTermination=None, res_shorts=None, kpn=None):
+def main_gen_lvds(pin_list, pGND=None, pVCC=None, pVEE=None, res_shorts=None, kpn=None):
+    res = gen_lvds_model(pin_list, pGND, pVCC, pVEE, res_shorts, kpn)
+    res += gen_lvds_clamp_diode(pin_list, pVCC, pGND)
+    res += ".ends\n"
+    res += "*******************************************************************\n"
+    res += "********************** SUB-CIRCUIT ********************************\n"
+    res += "*******************************************************************\n\n"
+    res += gen_lvds_subckt(kpn)
+    return res
+
+def gen_lvds_model(pin_list, pGND=None, pVCC=None, pVEE=None, res_shorts=None, kpn=None):
     '''Function to generate LVDS model'''
     reg_model = ""
     # Check if required pins have been given
-    if not (pVCC and pGND):
+    if pVCC is None or pGND is None:
         print("[ERROR] cannot generate Digital IC model one or more of the required pins (VCC & GND) have not been provided!")
         return ""
 
+    # generate pin numbers separated by space
     call_pin_list = []
     for pin_index in range(len(pin_list)):
         call_pin_list.append(str(pin_index+1))
     
     reg_model += "* \n"
     reg_model += ".subckt '"+kpn+"' "+" ".join(call_pin_list)+"\n" 
-    reg_model += get_lvds_model_configurations(pin_list, pVCC, pGND, rcss, rTermination, res_shorts, kpn)
+    reg_model += get_lvds_model_configurations(pin_list, pVCC, pGND, res_shorts, kpn)
     reg_model += "* \n"
 
     # Resistor shorts
@@ -100,39 +111,30 @@ def gen_cml_model(pin_list, pGND=None, pVCC=None, pVEE=None, current=None, volta
     
     return reg_model
 
-def get_lvds_model_configurations(pin_list, pVCC, pGND, rcss=None, rTermination=None, res_shorts=None, kpn=None):
+def get_lvds_model_configurations(pin_list, pVCC, pGND, res_shorts=None, kpn="xxxx_xxxx"):
     '''Function returns lvds model configuration'''
-    en_lvds_model_config = "*\n"
-    en_lvds_model_config += "* Model for "+kpn+" goes here\n"
+    en_lvds_model_config = f"*\n* Model for {kpn} goes here\n"
 
-    if not kpn:
-        kpn = "xxxx_xxxx"
-    else:
-        if "-" in kpn:
-            kpn = kpn.replace("-", "_")
+    if "-" in kpn:
+        kpn = kpn.replace("-", "_")
     
     en_lvds_model_config += "* RCSS placed to match supply current\n"
-    if rcss: 
-        en_lvds_model_config += "RCSS "+pVCC+" "+pGND+" "+rcss+"\n"
-    else: 
-        en_lvds_model_config += "RCSS "+pVCC+" "+pGND+" 39.22\n"
-    
-    en_lvds_model_config += "*\n"
+    en_lvds_model_config += f"RCSS {pVCC} {pGND} 39.22\n*\n"
     
     # Input and output pin setup 
     input_pin_p = []
     input_pin_n = []
     output_pin_p = []
     output_pin_n = []
-    for pin_index in range(len(pin_list)):
-        if "in_neg" in pin_list[pin_index][1].lower() or "not_in" in pin_list[pin_index][1].lower():
-            input_pin_n.append(pin_list[pin_index][0])
-        elif "in_pos" in pin_list[pin_index][1].lower() or "in" in pin_list[pin_index][1].lower() and not "_sel" in pin_list[pin_index][1].lower():
-            input_pin_p.append(pin_list[pin_index][0])
-        elif "not_out" in pin_list[pin_index][1].lower() or "out_neg" in pin_list[pin_index][1].lower():
-            output_pin_n.append(pin_list[pin_index][0])
-        elif "out" in pin_list[pin_index][1].lower() or "out_pos" in pin_list[pin_index][1].lower():
-            output_pin_p.append(pin_list[pin_index][0])
+    for pin in pin_list:
+        if "in_neg" in pin[1].lower() or "not_in" in pin[1].lower():
+            input_pin_n.append(pin[0])
+        elif "in_pos" in pin[1].lower() or "in" in pin[1].lower() and not "_sel" in pin[1].lower():
+            input_pin_p.append(pin[0])
+        elif "not_out" in pin[1].lower() or "out_neg" in pin[1].lower():
+            output_pin_n.append(pin[0])
+        elif "out" in pin[1].lower() or "out_pos" in pin[1].lower():
+            output_pin_p.append(pin[0])
     
     # Pull-up and Pull-down resistors on IN_SEL pin
     
@@ -140,18 +142,18 @@ def get_lvds_model_configurations(pin_list, pVCC, pGND, rcss=None, rTermination=
     
     # LVDS input stage
     # input terminators
-    if rTermination and range(len(input_pin_p)) == range(len(input_pin_n)):
+    rTermination = ""
+    if rTermination and len(input_pin_p) == len(input_pin_n):
         en_lvds_model_config += "* Input terminations\n"
         for count in range(len(input_pin_p)):
-            en_lvds_model_config += "RIN"+str(count)+" "+str(input_pin_p[count])+" "+str(input_pin_n[count])+" "+rTermination+"\n"
+            en_lvds_model_config += f"RIN{count} {input_pin_p[count]} {input_pin_n[count]} {rTermination}\n"
     else: 
         print("Either Input P pin count and Input N pin count are not the same OR no input for resistor termination value\n")
     en_lvds_model_config +=  "*\n"   
-    
     # LVDS output stage
-    if range(len(output_pin_p)) == range(len(output_pin_n)):
+    if len(output_pin_p) == len(output_pin_n):
         for count in range(len(output_pin_p)):
-            en_lvds_model_config += "XO"+str(count)+" "+pVCC+" "+str(output_pin_p[count])+" "+str(output_pin_n[count])+" "+pGND+" lvds_out_"+kpn+"\n"
+            en_lvds_model_config += f"XO{count} {pVCC} {output_pin_p[count]} {output_pin_n[count]} {pGND} lvds_out_{kpn}\n"
     else: 
         print("Output P pin count and Output N pin count are not the same\n")
 
@@ -274,93 +276,50 @@ def get_cml_model_configurations(pin_list, pVCC, pVEE=None, current=None, voltag
     return en_cml_model_config
 
 # Functions to generate LVDS clamp diode
-def gen_lvds_clamp_diode(pin_list, pVCC, pGND, dVolt=None, dCurr=None, dN=None, dIS=None, dRS=None):
-    # if no inputs, use default settings in template
-    if not dVolt: 
-        dVolt = '0.5'
-    if not dCurr: 
-        dCurr = '10m'
-    if not dN: 
-        dN = 1.0
-    if not dIS: 
-        dIS = 37.5e-12
-    if not dRS: 
-        dRS = '150m'
+# if no inputs, use default settings in template
+def gen_lvds_clamp_diode(pin_list, pVCC, pGND):
 
     lvds_clamp_diode = "* clamp protection\n"
-    if "." in dVolt:
-        dVolt = dVolt.replace(".", "p") 
 
     # Extract input pins from pin_list
-    input_pin_p = []
-    input_pin_n = []
-    for pin_index in range(len(pin_list)):
-        if "in_neg" in pin_list[pin_index][1].lower() or "not_in" in pin_list[pin_index][1].lower():
-            input_pin_n.append(pin_list[pin_index][0])
-        elif "in_pos" in pin_list[pin_index][1].lower() or "in" in pin_list[pin_index][1].lower() and not "_sel" in pin_list[pin_index][1].lower():
-            input_pin_p.append(pin_list[pin_index][0])
+    input_pin_p = [pin[0] for pin in pin_list if "in_pos" in pin[1].lower() or "in" in pin[1].lower() and not "_sel" in pin[1].lower()]
+    input_pin_n = [pin[0] for pin in pin_list if "in_neg" in pin[1].lower() or "not_in" in pin[1].lower()]
     
     if input_pin_p:
-        for count in range(len(input_pin_p)):
-            pair = count+1
-            lvds_clamp_diode += "DEPP"+str(pair)+" "+str(input_pin_p[count])+" "+pVCC+" DMOD_"+dVolt+"_"+dCurr+"A\n"
-            lvds_clamp_diode += "DENP"+str(pair)+" "+pGND+" "+str(input_pin_p[count])+" DMOD_"+dVolt+"_"+dCurr+"A\n"
+        for count, pin in enumerate(input_pin_p, start=1):
+            lvds_clamp_diode += f"DEPP{count} {pin} {pVCC} DMOD_0p5_10mA\n"
+            lvds_clamp_diode += f"DENP{count} {pGND} {pin} DMOD_0p5_10mA\n"
             lvds_clamp_diode += "*\n"
             if input_pin_n:
-                lvds_clamp_diode += "DEPN"+str(pair)+" "+str(input_pin_n[count])+" "+pVCC+" DMOD_"+dVolt+"_"+dCurr+"A\n"
-                lvds_clamp_diode += "DENN"+str(pair)+" "+pGND+" "+str(input_pin_n[count])+" DMOD_"+dVolt+"_"+dCurr+"A\n"
+                lvds_clamp_diode += f"DEPN{count} {input_pin_n[count-1]} {pVCC} DMOD_0p5_10mA\n"
+                lvds_clamp_diode += f"DENN{count} {pGND} {input_pin_n[count-1]} DMOD_0p5_10mA\n"
                 lvds_clamp_diode += "*\n"
         
-    lvds_clamp_diode += ".model DMOD_"+dVolt+"_"+dCurr+"A D N="+str(dN)+" IS="+str(dIS)+" RS="+str(dRS)+"\n"
+    lvds_clamp_diode += f".model DMOD_0p5_10mA D N=1.0 IS=3.75e-11 RS=150m\n"
     lvds_clamp_diode += "*\n"
     
     return lvds_clamp_diode
     
 # Functions to generate LVDS subckt
-def gen_lvds_subckt(L_ml2wp2a=None, W_ml2wp2a=None, L_mp7pmod=None, W_mp7pmod=None, L_mp8pmod=None, W_mp8pmod=None, L_mn7nmod=None, W_mn7nmod=None,
-                    L_mn8nmod=None, W_mn8nmod=None, L_ml2wn2a=None, W_ml2wn2a=None, VTO_pmodPmos=None, KP_pmodPmos=None, RD_pmodPmos=None, RS_pmodPmos=None, 
-                    VTO_nmodNmos=None, KP_nmodNmos=None, RD_nmodNmos=None, RS_nmodNmos=None, VTO_ml2wn2aNmos=None, KP_ml2wn2aNmos=None, RD_ml2wn2aNmos=None, RS_ml2wn2aNmos=None, 
-                    VTO_ml2wp2aPmos=None, KP_ml2wp2aPmos=None, RD_ml2wp2aPmos=None, RS_ml2wp2aPmos=None, kpn=None):
-   
+def gen_lvds_subckt(kpn="xxxx_xxxx"):
     '''Function returns filled subckt section'''
-    if not kpn:
-        kpn = "xxxx_xxxx"
-    else:
-        if "-" in kpn:
-            kpn = kpn.replace("-", "_")
+   
+    if "-" in kpn:
+        kpn = kpn.replace("-", "_")
 
-    # if no inputs from user, use the default settings for all variables
-    if not L_ml2wp2a and not W_ml2wp2a: 
-        L_ml2wp2a="2u"
-        W_ml2wp2a="15u"
-    if not L_mp7pmod and not W_mp7pmod: 
-        L_mp7pmod="1u"
-        W_mp7pmod="300u"
-    if not L_mp8pmod and not W_mp8pmod: 
-        L_mp8pmod="1u"
-        W_mp8pmod="300u"
-    if not L_mn7nmod and not W_mn7nmod:
-        L_mn7nmod="1u"
-        W_mn7nmod="200u"
-    if not L_mn8nmod and not W_mn8nmod: 
-        L_mn8nmod="1u"
-        W_mn8nmod="200u"
-    if not L_ml2wn2a and not W_ml2wn2a: 
-        L_ml2wn2a="2u"
-        W_ml2wn2a="15u"
-    
     lvds_subckt = ".subckt lvds_out_"+kpn+""" %VDD %OUTP %OUTN %GND
-* Output stage  *
-* MP7 and MN8 turn on together to pull 
-* OUT high, and MN7 and MP8 turn on
-* together to pull OUT low.
-*\n"""
-    lvds_subckt += "MPD1 %MNPA %VDD %VDD %VDD ML2WP2A L="+L_ml2wp2a+" W="+W_ml2wp2a+"\n"
-    lvds_subckt += "MP7 %OUTP %M5D %MNPA %MNPA PMOD_OUT L="+L_mp7pmod+" W="+W_mp7pmod+"\n"
-    lvds_subckt += "MP8 %OUTN %M6D %MNPA %MNPA PMOD_OUT L="+L_mp8pmod+" W="+W_mp8pmod+"\n"
-    lvds_subckt += "MN7 %OUTP %M5D %MNDA %MNDA NMOD_OUT L="+L_mn7nmod+" W="+W_mn7nmod+"\n"
-    lvds_subckt += "MN8 %OUTN %M6D %MNDA %MNDA NMOD_OUT L="+L_mn8nmod+" W="+W_mn8nmod+"\n"
-    lvds_subckt += "MND1 %MNDA %GND %GND %GND ML2WN2A L="+L_ml2wn2a+" W="+W_ml2wn2a+"\n"
+                    * Output stage  *
+                    * MP7 and MN8 turn on together to pull 
+                    * OUT high, and MN7 and MP8 turn on
+                    * together to pull OUT low.
+                    *\n"""
+    # default values
+    lvds_subckt += "MPD1 %MNPA %VDD %VDD %VDD ML2WP2A L=2u W=15u\n"
+    lvds_subckt += "MP7 %OUTP %M5D %MNPA %MNPA PMOD_OUT L=1u W=300u\n"
+    lvds_subckt += "MP8 %OUTN %M6D %MNPA %MNPA PMOD_OUT L=1u W=300u\n"
+    lvds_subckt += "MN7 %OUTP %M5D %MNDA %MNDA NMOD_OUT L=1u W=200u\n"
+    lvds_subckt += "MN8 %OUTN %M6D %MNDA %MNDA NMOD_OUT L=1u W=200u\n"
+    lvds_subckt += "MND1 %MNDA %GND %GND %GND ML2WN2A L=2u W=15u\n"
     lvds_subckt += """
 *
 * Default Model state : out(Pin 4) is high,
@@ -372,34 +331,12 @@ RPD %M5D %GND 100K
 *
 * All Models\n"""
 
-    # if no user input, use the default settings
-    if not VTO_pmodPmos and not KP_pmodPmos and not RD_pmodPmos and not RS_pmodPmos: 
-        VTO_pmodPmos=0.7
-        KP_pmodPmos="300u"
-        RD_pmodPmos=49
-        RS_pmodPmos=49
-    if not VTO_nmodNmos and not KP_nmodNmos and not RD_nmodNmos and not RS_nmodNmos:
-        VTO_nmodNmos=-0.7
-        KP_nmodNmos="350u"
-        RD_nmodNmos=50
-        RS_nmodNmos=50
-    if not VTO_ml2wn2aNmos and not KP_ml2wn2aNmos and not RD_ml2wn2aNmos and not RS_ml2wn2aNmos:
-        VTO_ml2wn2aNmos=-0.5
-        KP_ml2wn2aNmos="6.20m"
-        RD_ml2wn2aNmos="5m"
-        RS_ml2wn2aNmos="5m"
-    if not VTO_ml2wp2aPmos and not KP_ml2wp2aPmos and not RD_ml2wp2aPmos and not RS_ml2wp2aPmos:
-        VTO_ml2wp2aPmos=0.5
-        KP_ml2wp2aPmos="6.20m"
-        RD_ml2wp2aPmos="5m"
-        RS_ml2wp2aPmos="5m"
 
-    lvds_subckt += ".model PMOD_OUT UCBMOS PMOS VTO="+str(VTO_pmodPmos)+" KP="+str(KP_pmodPmos)+" RD="+str(RD_pmodPmos)+" RS="+str(RS_pmodPmos)+" \n"
-    lvds_subckt += ".model NMOD_OUT UCBMOS NMOS VTO="+str(VTO_nmodNmos)+" KP="+str(KP_nmodNmos)+" RD="+str(RD_nmodNmos)+" RS="+str(RS_nmodNmos)+" \n"
-    lvds_subckt += ".model ML2WN2A UCBMOS NMOS VTO="+str(VTO_ml2wn2aNmos)+" KP="+str(KP_ml2wn2aNmos)+" RD="+str(RD_ml2wn2aNmos)+" RS="+str(RS_ml2wn2aNmos)+" \n"
-    lvds_subckt += ".model ML2WP2A UCBMOS PMOS VTO="+str(VTO_ml2wp2aPmos)+" KP="+str(KP_ml2wp2aPmos)+" RD="+str(RD_ml2wp2aPmos)+" RS="+str(RS_ml2wp2aPmos)+" \n"
-    lvds_subckt += "* \n"
-    lvds_subckt += ".ends \n"
+    lvds_subckt += ".model PMOD_OUT UCBMOS PMOS VTO=0.7 KP=300u RD=49 RS=49\n"
+    lvds_subckt += ".model NMOD_OUT UCBMOS NMOS VTO=-0.7 KP=350u RD=50 RS=50\n"
+    lvds_subckt += ".model ML2WN2A UCBMOS NMOS VTO=-0.5 KP=6.20m RD=5m RS=5m\n"
+    lvds_subckt += ".model ML2WP2A UCBMOS PMOS VTO=0.5 KP=6.20m RD=5m RS=5m\n"
+    lvds_subckt += "* \n.ends \n"
     
     return lvds_subckt
     
@@ -595,50 +532,49 @@ def gen_lvds_harness(kpn, pin_list, vcc=None, vPos=None, vNeg=None):
             kpn = kpn.replace("_", "-")
 
     if not (vcc and vPos):
-        print("[ERROR] cannot generate LVDS harness due to one or more of the required inputs (VCC & VIN/VPOS) have not been provided!")
-        return ""
+        raise ValueError("Cannot generate LVDS harness due to one or more of the required inputs (VCC & VIN/VPOS) not being provided.")
 
     vinb = False
     call_pin_list = []
-    for pin_index in range(len(pin_list)):
-        if "vcc" in pin_list[pin_index][1].lower():
-            pin = pin_list[pin_index][1].replace("VCC", "%VCC")
+    for pin in pin_list:
+        if "vcc" in pin[1].lower():
+            pin = pin[1].replace("VCC", "%VCC")
             call_pin_list.append("%VCC")
-        elif "in_sel" in pin_list[pin_index][1].lower(): 
+        elif "in_sel" in pin[1].lower(): 
             call_pin_list.append("%IN_SEL")
         #Check "not_in" before "in" to avoid error on not_in pins
-        elif "not_in" in pin_list[pin_index][1].lower():
-            pin = pin_list[pin_index][1].replace("NOT_IN", "%NOT_IN")
+        elif "not_in" in pin[1].lower():
+            pin = pin[1].replace("NOT_IN", "%NOT_IN")
             vinb = True
             call_pin_list.append(pin)
-        elif "din" in pin_list[pin_index][1].lower():
-            vin = str(pin_list[pin_index][0])
-            call_pin_list.append(str(pin_list[pin_index][0]))
-        elif "in_pos" in pin_list[pin_index][1].lower() or "in_neg" in pin_list[pin_index][1].lower():
+        elif "din" in pin[1].lower():
+            vin = str(pin[0])
+            call_pin_list.append(str(pin[0]))
+        elif "in_pos" in pin[1].lower() or "in_neg" in pin[1].lower():
             vin = "%VIN"
             call_pin_list.append("%VIN")
-        elif "in" in pin_list[pin_index][1].lower():
-            pin = pin_list[pin_index][1].replace("IN", "%IN")
+        elif "in" in pin[1].lower():
+            pin = pin[1].replace("IN", "%IN")
             vin = pin
             call_pin_list.append(pin)
         #Check "not_out" before "out" to avoid error on not_out pins
-        elif "not_out0" in pin_list[pin_index][1].lower() or "out_1" in pin_list[pin_index][1].lower() or "dout_neg" in pin_list[pin_index][1].lower():
+        elif "not_out0" in pin[1].lower() or "out_1" in pin[1].lower() or "dout_neg" in pin[1].lower():
             call_pin_list.append("%NOTQ")
-        elif "out0" in pin_list[pin_index][1].lower() or "out_2" in pin_list[pin_index][1].lower() or "dout_pos" in pin_list[pin_index][1].lower():
+        elif "out0" in pin[1].lower() or "out_2" in pin[1].lower() or "dout_pos" in pin[1].lower():
             call_pin_list.append("%Q")
-        elif "not_out" in pin_list[pin_index][1].lower():
-            pin = pin_list[pin_index][1].replace("NOT_OUT", "%NOT_OUT")
+        elif "not_out" in pin[1].lower():
+            pin = pin[1].replace("NOT_OUT", "%NOT_OUT")
             call_pin_list.append(pin)
-        elif "out" in pin_list[pin_index][1].lower() and not "_pos" in pin_list[pin_index][1].lower():
-            pin = pin_list[pin_index][1].replace("OUT", "%OUT")
+        elif "out" in pin[1].lower() and not "_pos" in pin[1].lower():
+            pin = pin[1].replace("OUT", "%OUT")
             call_pin_list.append(pin)
-        elif "vac_ref" in pin_list[pin_index][1].lower():
-            pin = pin_list[pin_index][1].replace("VAC_REF", "%VAC_REF")
+        elif "vac_ref" in pin[1].lower():
+            pin = pin[1].replace("VAC_REF", "%VAC_REF")
             call_pin_list.append(pin)
-        elif "gnd" in pin_list[pin_index][1].lower():
+        elif "gnd" in pin[1].lower():
             call_pin_list.append("0")
         else:
-            call_pin_list.append(str(pin_list[pin_index][0]))
+            call_pin_list.append(str(pin[0]))
 
     # Configuration for fixture.cki
     reg_lvds = "Test circuit for "+kpn+"\n"
@@ -648,7 +584,10 @@ def gen_lvds_harness(kpn, pin_list, vcc=None, vPos=None, vNeg=None):
     reg_lvds += "X1 "+" ".join(call_pin_list)+" '"+kpn+"'\n"
     reg_lvds += "\n\n"
     reg_lvds += "VCC %VCC 0 dc PWL(0 0 10u "+vcc+")\n"
-    reg_lvds += "VIN "+vin+" 0 dc PWL(0 0 10u "+vPos+")\n"
+    try:
+        reg_lvds += "VIN "+vin+" 0 dc PWL(0 0 10u "+vPos+")\n"
+    except UnboundLocalError:
+        pass
     if vinb: 
         reg_lvds += "vinb %NOT_IN0 0 dc PWL(0 0 10u "+vNeg+")\n"
         reg_lvds += "VEE %GND 0 dc PWL(0 0 10u 0)\n"
@@ -659,7 +598,6 @@ def gen_lvds_harness(kpn, pin_list, vcc=None, vPos=None, vNeg=None):
     reg_lvds += ".end\n"
     
     return reg_lvds
-
 # Harness generation functions
 def gen_ecl_harness(kpn, pin_list, vcc=None, vee=None, vtt=None):
     '''Function returns filled harness for test'''
@@ -784,34 +722,31 @@ def gen_cml_harness(kpn, pin_list, vcc=None, vee=None, vin=None):
 def gen_lvds_cmd():
     '''Function returns filled core.cmd for testing LVDS '''
     reg_cmd = "si fixture\n"
-    reg_cmd += "print \" positive Supply Voltage VCC : %s\" yvalue(vcc,15u)\n"
+    reg_cmd += "print \" Supply DVDD : %s\" yvalue(vcc,15u)\n"
     # Not applicable to 1822-1299 ---------------------------------------------
-    reg_cmd += "#print \" negative Supply Voltage VEE : %s\" yvalue(vee,15u)\n"
+    reg_cmd += "print \" Supply DGND : %s\" yvalue(vee,15u)\n"
     reg_cmd += "print \" \" \n"
-    reg_cmd += "print \" Output Q : %s\" yvalue(v(Q),15u)\n"
-    reg_cmd += "print \" Output Q_NOT : %s\" yvalue(v(NOTQ),15u)\n"
-    reg_cmd += "\n\n"
-    reg_cmd += "print \"VOS : %s\" (yvalue(v(Q),15u)+yvalue(v(NOTQ),15u))/2\n"
-    reg_cmd += "print \"VOD : %s\" (yvalue(v(Q),15u)-yvalue(v(NOTQ),15u))\n"
+    reg_cmd += "print \" Output DOUTP : %s\" yvalue(v(Q),15u)\n"
+    reg_cmd += "print \" Output DOUTN : %s\" yvalue(v(NOTQ),15u)\n"
+    reg_cmd += "print \" Output delta : %s\" (yvalue(v(Q),15u)-yvalue(v(NOTQ),15u))\n"
+    reg_cmd += "print \" Output com : %s\" (yvalue(v(Q),15u)+yvalue(v(NOTQ),15u))/2\n"
     reg_cmd += "print \" \" \n"
     # ------------------------------------------------------------------------
-    reg_cmd += "\n\n"
     reg_cmd += "#------PRINTING BRANCH CURRENTS---------------\n"
     reg_cmd += "print \" Analog Supply Current IVCC : %s\" yvalue(abs(i(vcc)),15u)\n"
     reg_cmd += "#print \" Analog Supply Current IVEE : %s\" yvalue(abs(i(vee)),15u)\n"
 
-    reg_cmd += "#------PRINTING CURVES NOW--------------------\n"
-    reg_cmd += "#print \"**********************************************************\"\n"
-    reg_cmd += "print \" BUS Supply Current IVCC\"\n"
-    reg_cmd += "print \"***********************************************************\"\n"
-    reg_cmd += "set graphdev IVCC\n"
-    reg_cmd += "gr abs(i(vcc)) ; v(Q) ; v(NOTQ)\n"
-
+    reg_cmd += "##------PRINTING CURVES NOW--------------------\n"
+    reg_cmd += "##print \"**********************************************************\"\n"
+    reg_cmd += "#print \" BUS Supply Current IVCC\"\n"
     reg_cmd += "#print \"***********************************************************\"\n"
-    reg_cmd += "#print \" BUS Supply Current IVEE\"\n"
-    reg_cmd += "#print \"***********************************************************\"\n"
-    reg_cmd += "#set graphdev IVEE\n"
-    reg_cmd += "#gr abs(i(vee))\n"
+    reg_cmd += "#set graphdev IVCC\n"
+    reg_cmd += "#gr abs(i(vcc)) ; v(Q) ; v(NOTQ)\n"
+    reg_cmd += "##print \"***********************************************************\"\n"
+    reg_cmd += "##print \" BUS Supply Current IVEE\"\n"
+    reg_cmd += "##print \"***********************************************************\"\n"
+    reg_cmd += "##set graphdev IVEE\n"
+    reg_cmd += "##gr abs(i(vee))\n"
     
     return reg_cmd
 
@@ -936,4 +871,5 @@ def short_similar_pins(pin_list, resistance="1"):
                 if index2 > index1:
                     shorted_pins += "R"+str(group)+str(count)+" "+str(pin_group_list[group][index1])+" "+str(pin_group_list[group][index2])+" "+str(resistance)+"\n"
                     count += 1
+    return shorted_pins
     return shorted_pins

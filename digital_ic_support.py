@@ -52,65 +52,7 @@ def copyBtnClicked(*args):
     pc.copy(_w1.Scrolledtext1.get("1.0", tk.END))
     sys.stdout.flush()
 
-def createLvdsBtnClicked(*args):
-    print('digital_ic_support.createLvdsBtnClicked')
-    for arg in args:
-        print ('another arg:', arg)
-    sys.stdout.flush()
 
-    # Clear existing output
-    _w1.Scrolledtext1.configure(state='normal')
-    _w1.Scrolledtext1.delete("1.0", tk.END)
-    _w1.Scrolledtext1.configure(state='disabled')
-
-    # Check for user's input on model settings and generate for harness and cmd
-    global _top2, _w2
-    _top2 = tk.Toplevel(root)
-    _w2 = digital_ic_gui.Toplevel2(_top2)
-
-def fillLvdsBtnClicked(*args):  
-    print('digital_ic_support.fillLvdsBtnClicked')
-    for arg in args:
-        print ('another arg:', arg)
-    sys.stdout.flush()
-
-    _w2.rcss.set("39.22")
-    _w2.rTermination.set("")
-    _w2.lvdsDiodeVolt.set("0.5")
-    _w2.lvdsDiodeCurr.set("10m")
-    _w2.lvdsDiodeN.set("1")
-    _w2.lvdsDiodeIS.set("37.5e-12")
-    _w2.lvdsDiodeRS.set("1")
-    _w2.lvdsMl2wp2aL.set("2u") 
-    _w2.lvdsMl2wp2aW.set("15u")
-    _w2.lvdsMp7pmodL.set("1u")
-    _w2.lvdsMp7pmodW.set("300u")
-    _w2.lvdsMp8pmodL.set("1u")
-    _w2.lvdsMp8pmodW.set("300u")
-    _w2.lvdsMn7nmodL.set("1u")
-    _w2.lvdsMn7nmodW.set("200u")
-    _w2.lvdsMn8nmodL.set("1u")
-    _w2.lvdsMn8nmodW.set("200u")
-    _w2.lvdsMl2wn2aL.set("2u")
-    _w2.lvdsMl2wn2aW.set("15u")
-    _w2.lvdsPmodPmosVto.set("0.7")
-    _w2.lvdsPmodPmosKp.set("300u")
-    _w2.lvdsPmodPmosRd.set("49")
-    _w2.lvdsPmodPmosRs.set("49")
-    _w2.lvdsNmodNmosVto.set("-0.7")
-    _w2.lvdsNmodNmosKp.set("350u")
-    _w2.lvdsNmodNmosRd.set("50")
-    _w2.lvdsNmodNmosRs.set("50")
-    _w2.lvdsMl2wn2aNmosVto.set("-0.5")
-    _w2.lvdsMl2wn2aNmosKp.set("6.20m")
-    _w2.lvdsMl2wn2aNmosRd.set("5m")
-    _w2.lvdsMl2wn2aNmosRs.set("5m")
-    _w2.lvdsMl2wp2aPmosVto.set("0.5")
-    _w2.lvdsMl2wp2aPmosKp.set("6.20m")
-    _w2.lvdsMl2wp2aPmosRd.set("5m")
-    _w2.lvdsMl2wp2aPmosRs.set("5m")
-                                                    
-  
 def submitLvdsBtnClicked(*args):
     print('digital_ic_support.submitLvdsBtnClicked')
     for arg in args:
@@ -120,73 +62,20 @@ def submitLvdsBtnClicked(*args):
     # Generate model
     # Generate 1 ohm resistor network for similar pins
     shorts = lib_digital_ic.short_similar_pins(pin_list=PIN_LIST, resistance="1")
+    
     # Generate model
     print("[INFO] Generating model ...", flush=True)
-    reg_model = ""
-    
-    # Generating model based on user's inputs
-    reg_model += lib_digital_ic.gen_lvds_model(pin_list=PIN_LIST, pGND=_w1.gndPinNum.get(), pVCC=_w1.vccPinNum.get(),
-                    pVEE=_w1.veePinNum.get(), rcss=_w2.rcss.get(), rTermination=_w2.rTermination.get(), res_shorts=shorts, kpn=_w1.kpn.get())
-    reg_model += lib_digital_ic.gen_lvds_clamp_diode(pin_list=PIN_LIST, pVCC=_w1.vccPinNum.get(), pGND=_w1.gndPinNum.get(), 
-                    dVolt=_w2.lvdsDiodeVolt.get(), dCurr=_w2.lvdsDiodeCurr.get(), dN=_w2.lvdsDiodeN.get(), dIS=_w2.lvdsDiodeIS.get(), dRS=_w2.lvdsDiodeRS.get())
-    reg_model += ".ends\n"
-    reg_model += "*******************************************************************\n"
-    reg_model += "********************** SUB-CIRCUIT ********************************\n"
-    reg_model += "*******************************************************************\n"
-    reg_model += "\n"
-    reg_model += lib_digital_ic.gen_lvds_subckt(L_ml2wp2a=_w2.lvdsMl2wp2aL.get(), W_ml2wp2a=_w2.lvdsMl2wp2aW.get(),
-                                                L_mp7pmod=_w2.lvdsMp7pmodL.get(), W_mp7pmod=_w2.lvdsMp7pmodW.get(),
-                                                L_mp8pmod=_w2.lvdsMp8pmodL.get(), W_mp8pmod=_w2.lvdsMp8pmodW.get(),
-                                                L_mn7nmod=_w2.lvdsMn7nmodL.get(), W_mn7nmod=_w2.lvdsMn7nmodW.get(),
-                                                L_mn8nmod=_w2.lvdsMn8nmodL.get(), W_mn8nmod=_w2.lvdsMn8nmodW.get(),
-                                                L_ml2wn2a=_w2.lvdsMl2wn2aL.get(), W_ml2wn2a=_w2.lvdsMl2wn2aW.get(),
-                                                VTO_pmodPmos=_w2.lvdsPmodPmosVto.get(), KP_pmodPmos=_w2.lvdsPmodPmosKp.get(), RD_pmodPmos=_w2.lvdsPmodPmosRd.get(), RS_pmodPmos=_w2.lvdsPmodPmosRs.get(), 
-                                                VTO_nmodNmos=_w2.lvdsNmodNmosVto.get(), KP_nmodNmos=_w2.lvdsNmodNmosKp.get(), RD_nmodNmos=_w2.lvdsNmodNmosRd.get(), RS_nmodNmos=_w2.lvdsNmodNmosRs.get(), 
-                                                VTO_ml2wn2aNmos=_w2.lvdsMl2wn2aNmosVto.get(), KP_ml2wn2aNmos=_w2.lvdsMl2wn2aNmosKp.get(), RD_ml2wn2aNmos=_w2.lvdsMl2wn2aNmosRd.get(), RS_ml2wn2aNmos=_w2.lvdsMl2wn2aNmosRs.get(), 
-                                                VTO_ml2wp2aPmos=_w2.lvdsMl2wp2aPmosVto.get(), KP_ml2wp2aPmos=_w2.lvdsMl2wp2aPmosKp.get(), RD_ml2wp2aPmos=_w2.lvdsMl2wp2aPmosRd.get(), RS_ml2wp2aPmos=_w2.lvdsMl2wp2aPmosRs.get(), 
-                                                kpn=_w1.kpn.get())
-                                                
+    reg_model = lib_digital_ic.main_gen_lvds(pin_list=PIN_LIST, pGND=_w1.gndPinNum.get(), pVCC=_w1.vccPinNum.get(),
+                    pVEE=_w1.veePinNum.get(), res_shorts=shorts, kpn=_w1.kpn.get())
 
     _w1.Scrolledtext1.configure(state='normal')
     _w1.Scrolledtext1.insert(tk.INSERT, reg_model)
     _w1.Scrolledtext1.configure(state='disabled')
     print("[INFO] Generating model ... done", flush=True)
 
-    # Open kpn.inc file and write reg_model into kpn.inc
-    if os.path.exists('{}.inc'.format(_w1.kpn.get())):  
-        print("File exist\n")
-        model_config = ""
-        config_written = False 
-        #inserting header and ratings section into model template file
-        with open('{}.inc'.format(_w1.kpn.get()), 'r+') as f: #r+ does the work of rw
-            lines = f.readlines()
-            if len(lines)>0 and lines[0].startswith('* Start of model for '):
-                for i, line in enumerate(lines):
-                    if line.startswith('* Model for '):
-                        # empty or remove the line
-                        model_config += ""                        
-                    elif line.startswith('*'):
-                        model_config += lines[i]
-                    else:
-                        if not config_written: 
-                            model_config += reg_model
-                            config_written = True
-                        else: 
-                            # empty or remove the line
-                            model_config += ""
-                
-                f.seek(0) #back to first line in the file
-                f.truncate(0) # clear all text in the file, need '0' when using r+
-                for line in model_config:
-                    f.write(line)
-            else:
-                print("No lines found\n")
-        
-    else: 
-        #print("Create a new file\n")
-        wf = open('{}.inc'.format(_w1.kpn.get()), "w")
-        wf.write(reg_model)
-        wf.close()
+    # write to file
+    with open('{}.inc'.format(_w1.kpn.get()), 'w') as f:
+        f.write(reg_model)
 
     _w1.Scrolledtext1.configure(state='normal')
     _w1.Scrolledtext1.insert(tk.INSERT, "\n\n*******************************************************************\n")
@@ -196,7 +85,6 @@ def submitLvdsBtnClicked(*args):
 
     # Generate harness
     print("[INFO] Generating harness ...", flush=True)
-    reg_harness = ""
     reg_harness = lib_digital_ic.gen_lvds_harness(kpn=_w1.kpn.get(), pin_list=PIN_LIST, vcc=_w1.vcc.get(), vPos=_w1.vpos.get(), vNeg=_w1.vneg.get())
     
     _w1.Scrolledtext1.configure(state='normal')
@@ -204,9 +92,8 @@ def submitLvdsBtnClicked(*args):
     _w1.Scrolledtext1.configure(state='disabled')
 
     # Open harness.cki file and write reg_harness into ds.cki
-    wf = open("fixture.cki", "w")
-    wf.write(reg_harness)
-    wf.close()
+    with open("fixture.cki", "w") as f:
+        f.write(reg_harness)
     print("[INFO] Generating harness ... done", flush=True)
     
     _w1.Scrolledtext1.configure(state='normal')
@@ -217,25 +104,22 @@ def submitLvdsBtnClicked(*args):
 
     # Generate core.cmd
     print("[INFO] Generating core.cmd..", flush=True)
-    reg_core_cmd = ""
     reg_core_cmd = lib_digital_ic.gen_lvds_cmd()
     _w1.Scrolledtext1.configure(state='normal')
     _w1.Scrolledtext1.insert(tk.INSERT, reg_core_cmd)
     _w1.Scrolledtext1.configure(state='disabled')
     # create core.cmd and write reg_core_cmd into cmd
-    wf = open("core.cmd", "w")
-    wf.write(reg_core_cmd)
-    wf.close()
+    with open("core.cmd", "w") as f:
+        f.write(reg_core_cmd)
     print("[INFO] Generating core.cmd ... done", flush=True)
     
+    # TODO: Perform optimization
     # Execute . cmd_ds
     subprocess.call(["hpspice","-s","-c","'.","core.cmd'"])
     
     #print("[INFO] Generating stress.cmd ... done", flush=True)
     print("[INFO] LVDS modelling completed", flush=True)
-    
-    # Close second window
-    _top2.withdraw() 
+
 
 def createEclBtnClicked(*args):
     print('digital_ic_support.createEclBtnClicked')
@@ -588,24 +472,22 @@ def loadPinBtnClicked(*args):
             _w1.inselPinNum.set("")
             _w1.refPinNum.set("")
             _w1.vtrPinNum.set("")
-            for pin_index in range(len(PIN_LIST)):
-                if not _w1.vccPinNum.get() and "vcc" in PIN_LIST[pin_index][1].lower():
-                    _w1.vccPinNum.set(PIN_LIST[pin_index][0])
-                elif not _w1.gndPinNum.get() and "gnd" in PIN_LIST[pin_index][1].lower():
-                    _w1.gndPinNum.set(PIN_LIST[pin_index][0])
-                elif not _w1.veePinNum.get() and "vee" in PIN_LIST[pin_index][1].lower():
-                    _w1.veePinNum.set(PIN_LIST[pin_index][0])
-                elif not _w1.inselPinNum.get() and "in_sel" in PIN_LIST[pin_index][1].lower():
-                    _w1.inselPinNum.set(PIN_LIST[pin_index][0])
-                elif not _w1.refPinNum.get() and "ref" in PIN_LIST[pin_index][1].lower():
-                    _w1.refPinNum.set(PIN_LIST[pin_index][0])
-                elif not _w1.vbbPinNum.get() and "vbb" in PIN_LIST[pin_index][1].lower():
-                    _w1.vbbPinNum.set(PIN_LIST[pin_index][0])
-                elif not _w1.vtrPinNum.get() and "vt" in PIN_LIST[pin_index][1].lower():
-                    _w1.vtrPinNum.set(PIN_LIST[pin_index][0])
+            for pin in PIN_LIST:
+                if not _w1.vccPinNum.get() and "vcc" in pin[1].lower():
+                    _w1.vccPinNum.set(pin[0])
+                elif not _w1.gndPinNum.get() and "gnd" in pin[1].lower():
+                    _w1.gndPinNum.set(pin[0])
+                elif not _w1.veePinNum.get() and "vee" in pin[1].lower():
+                    _w1.veePinNum.set(pin[0])
+                elif not _w1.inselPinNum.get() and "in_sel" in pin[1].lower():
+                    _w1.inselPinNum.set(pin[0])
+                elif not _w1.refPinNum.get() and "ref" in pin[1].lower():
+                    _w1.refPinNum.set(pin[0])
+                elif not _w1.vbbPinNum.get() and "vbb" in pin[1].lower():
+                    _w1.vbbPinNum.set(pin[0])
+                elif not _w1.vtrPinNum.get() and "vt" in pin[1].lower():
+                    _w1.vtrPinNum.set(pin[0])
 
-            #reset pin_index numbering
-            pin_index = 0
         else:
             tk.messagebox.showerror("Input Error", "Either Input Pin Information is empty or first line in the box is empty.")
             
@@ -658,12 +540,6 @@ def resetBtnClicked(*args):
 
     sys.stdout.flush()
 
-def exitLvdsBtnClicked(*args):
-    print('digital_ic_support.submitLvdsBtnClicked')
-    for arg in args:
-        print ('another arg:', arg)
-    sys.stdout.flush()
-    _top2.withdraw() 
 
 def exitEclBtnClicked(*args):
     print('digital_ic_support.submitEclBtnClicked')
