@@ -57,16 +57,12 @@ def extractECL(data):
                     ecl[key] = getVal(line.split()[3])
     return ecl
 
-def editECLNetlist(filename, RB1=None, RB2=None, MB1_W=None, MB2_W=None):
+def editECLNetlist(filename, RB1=None, RB2=None):
     for line in fileinput.input(files=filename, inplace=True):
         if RB1 and "RB1 %vcc" in line:
             line = line.replace(line.split()[-1], str(RB1))
         elif RB2 and "RB2 %vcc" in line:
             line = line.replace(line.split()[-1], str(RB2))
-        elif MB1_W and "MB1 %b1" in line:
-            line = line.replace(line.split()[-1], "W=" + str(MB1_W))
-        elif MB2_W and "MB2 %b2" in line:
-            line = line.replace(line.split()[-1], "W=" + str(MB2_W))
         print(line, end="")
 
 
@@ -86,7 +82,7 @@ def extractCML(data):
                     cml[key] = getVal(line.split()[3])
     return cml
 
-def editCMLNetlist(filename, R1=None, R2=None, R3=None, R4=None, BF=None, RC=None, RE=None, RB=None, MCA_W=None):
+def editCMLNetlist(filename, R1=None, R2=None, R3=None, R4=None, BF=None, RC=None, RE=None, RB=None):
     for line in fileinput.input(files=filename, inplace=True):
         if R1 and "R1" in line and '*' not in line:
             line = line.replace(line.split()[-1], str(R1))
@@ -105,8 +101,6 @@ def editCMLNetlist(filename, R1=None, R2=None, R3=None, R4=None, BF=None, RC=Non
                 line = line.replace(line.split()[5], "RE=" + str(RE))
             if RB:
                 line = line.replace(line.split()[6], "RB=" + str(RB))
-        elif MCA_W and "MCA %e" in line:
-            line = line.replace(line.split()[-1], "W=" + str(MCA_W))
         print(line, end="")
 
 

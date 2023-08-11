@@ -1,46 +1,89 @@
 import os
-from bayes_opt import BayesianOptimization, UtilityFunction
-
+from bayes_opt import BayesianOptimization, SequentialDomainReductionTransformer, UtilityFunction
 from util import extractECL, editECLNetlist, penaltyFunc, runCmd
 
 
-def runECL(filename, RB1=None, RB2=None, MB1_W=None, MB2_W=None):
-    editECLNetlist(filename, RB1, RB2, MB1_W, MB2_W)
+def runECL(filename, RB1=None, RB2=None):
+    editECLNetlist(filename, RB1, RB2)
     data = runCmd().splitlines()[1:]
     return extractECL(data)
 
 
-def optimize(filename, bounds, VOH, VOL, IAVDD):
+def optimizeVOH(filename, bounds, VOH):
     optimizer = BayesianOptimization(
         f=None,
         pbounds=bounds,
-        allow_duplicate_points=True
+        allow_duplicate_points=True,
+        bounds_transformer=SequentialDomainReductionTransformer()
     )
 
     utility = UtilityFunction(kind="ucb", kappa=5)
 
-    for _ in range(10):
+    for _ in range(20):
         next_point = optimizer.suggest(utility)
         eclDict = runECL(filename, **next_point)
-        target = penaltyFunc(eclDict["Output VOH"], VOH, -20)
-        target += penaltyFunc(eclDict["Output VOL"], VOL, -20)
-        target += penaltyFunc(eclDict["Analog Supply Current IAVDD"], IAVDD, -5)
+        target = penaltyFunc(eclDict["Output VOH"], VOH, -30)
         optimizer.register(next_point, target)
     
     print(optimizer.max)
+    editECLNetlist(filename, **optimizer.max['params'])
     return optimizer.max
 
 
-def run(filename, bounds, idealValues):
-    res = []
-    errorThreshold = -0.1  # must be < 0
+def optimizeVOL(filename, bounds, VOL):
+    optimizer = BayesianOptimization(
+        f=None,
+        pbounds=bounds,
+        allow_duplicate_points=True,
+        bounds_transformer=SequentialDomainReductionTransformer()
+    )
 
-    for i in range(5):
-        print("Calibrating... Iteration " + str(i+1) + "/5", end="\r", flush=True)
-        curr = optimize(filename, bounds, **idealValues)
+    utility = UtilityFunction(kind="ucb", kappa=5)
+
+    for _ in range(20):
+        next_point = optimizer.suggest(utility)
+        eclDict = runECL(filename, **next_point)
+        target = penaltyFunc(eclDict["Output VOL"], VOL, -30)
+        optimizer.register(next_point, target)
+    
+    print(optimizer.max)
+    editECLNetlist(filename, **optimizer.max['params'])
+    return optimizer.max
+
+def run(filename, boundsVOH, boundsVOL, idealValues):
+    """
+    Optimize the parameters of a model file by running a calibration process
+    on VOH and VOL outputs sequentially. The best result is then selected and
+    the model file is edited to reflect the optimized parameters.
+
+    Args:
+        filename (str): The name of the model file.
+        boundsVOL (dict): A dictionary specifying the bounds for the VOL parameters.
+        boundsVOH (dict): A dictionary specifying the bounds for the VOH parameters.
+        idealValues (dict): A dictionary specifying the ideal VOL and VOH values.
+
+    Returns:
+        None
+
+    Example Usage:
+        filename = "kpn.inc"
+
+        boundsVOL = {"RB1": (1, 1000)}
+
+        boundsVOH = {"RB1": (1, 1000)}
+        
+        idealValues = {"VOL": 0.1, "VOH": 0.9}
+
+        run(filename, boundsVOL, boundsVOH, idealValues)
+    """
+    res = []
+
+    for i in range(3):
+        print("Calibrating... Iteration " + str(i+1) + "/3", end="\r", flush=True)
+        voh = optimizeVOH(filename, boundsVOH, idealValues["VOH"])
+        vol = optimizeVOL(filename, boundsVOL, idealValues["VOL"])
+        curr = {'target': voh['target'] + vol['target'], 'params': {**voh['params'], **vol['params']}}
         res.append(curr)
-        if curr['target'] > errorThreshold:
-            break
 
     # return element with target closest to 0
     res.sort(key=lambda x: x['target'], reverse=True)
@@ -52,13 +95,11 @@ def run(filename, bounds, idealValues):
 
 if __name__ == "__main__":
 
-    bounds = {"RB1": (100, 1000),
-            "RB2": (100, 1000),
-            "MB1_W": (1e-6,1e-4),
-            "MB2_W": (1e-6,1e-4)}
+    boundsVOH = {"RB1": (1, 1000)}
+    boundsVOL = {"RB2": (1, 1000)}
     
     idealValues = {"VOH": 2.32,
-                    "VOL": 1.5,
-                    "IAVDD": 0.17}
+                    "VOL": 1.5}
     
-    run("1822-2408.inc", bounds, idealValues)
+    os.chdir("1822-2408")
+    run("1822-2408.inc", boundsVOH, boundsVOL, idealValues)

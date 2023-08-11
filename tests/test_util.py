@@ -45,18 +45,16 @@ def test_editECLNetlist():
     # Generate test file
     filename = "testECL.txt"
     with open(filename, "w") as f:
-        f.write("RB1 %vcc 100\nRB2 %vcc 100\nMB1 %b1 W=1\nMB2 %b2 W=1\n")
+        f.write("RB1 %vcc 100\nRB2 %vcc 100\n")
 
     # Edit test file
-    editECLNetlist(filename, RB1=200, RB2=200, MB1_W=0.5, MB2_W=0.5)
+    editECLNetlist(filename, RB1=200, RB2=200)
 
     # Check if test file was edited correctly
     with open(filename, "r") as f:
         data = f.read()
         assert "RB1 %vcc 200" in data
         assert "RB2 %vcc 200" in data
-        assert "MB1 %b1 W=0.5" in data
-        assert "MB2 %b2 W=0.5" in data
 
     # Delete test file
     os.remove(filename)
@@ -73,18 +71,16 @@ def test_editCMLNetlist():
     # Generate test file
     filename = "testCML.txt"
     with open(filename, "w") as f:
-        data = "MCA %e %gnd %gnd %gnd ML2WN4A L=2u W=0.0001\n"
-        data += "R1 %vcc %b1 100\nR2 %b1 %gnd 100\nR3 %vcc %b2 1000\nR4 %b2 %gnd 1000\n"
+        data = "R1 %vcc %b1 100\nR2 %b1 %gnd 100\nR3 %vcc %b2 1000\nR4 %b2 %gnd 1000\n"
         data += ".model QMOD_OUT NPN BF=10 RC=1000 RE=1000 RB=1000\n"
         f.write(data)
 
     # Edit test file
-    editCMLNetlist(filename, R1=200, R2=200, R3=200, R4=200, BF=0.0001, RC=100, RE=100, RB=100, MCA_W=0.5)
+    editCMLNetlist(filename, R1=200, R2=200, R3=200, R4=200, BF=0.0001, RC=100, RE=100, RB=100)
 
     # Check if test file was edited correctly
     with open(filename, "r") as f:
         data = f.read()
-        assert "W=0.5" in data
         assert "R1 %vcc %b1 200" in data
         assert "R2 %b1 %gnd 200" in data
         assert "R3 %vcc %b2 200" in data
