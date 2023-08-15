@@ -17,9 +17,9 @@ def optimizeVOH(filename, bounds, VOH):
         bounds_transformer=SequentialDomainReductionTransformer()
     )
 
-    utility = UtilityFunction(kind="ucb", kappa=5)
+    utility = UtilityFunction(kind="ucb", kappa=5, kappa_decay=0.95, kappa_decay_delay=10)
 
-    for _ in range(20):
+    for _ in range(25):
         next_point = optimizer.suggest(utility)
         eclDict = runECL(filename, **next_point)
         target = penaltyFunc(eclDict["Output VOH"], VOH, -30)
@@ -38,9 +38,9 @@ def optimizeVOL(filename, bounds, VOL):
         bounds_transformer=SequentialDomainReductionTransformer()
     )
 
-    utility = UtilityFunction(kind="ucb", kappa=5)
+    utility = UtilityFunction(kind="ucb", kappa=5, kappa_decay=0.95, kappa_decay_delay=10)
 
-    for _ in range(20):
+    for _ in range(25):
         next_point = optimizer.suggest(utility)
         eclDict = runECL(filename, **next_point)
         target = penaltyFunc(eclDict["Output VOL"], VOL, -30)
@@ -77,13 +77,15 @@ def run(filename, boundsVOH, boundsVOL, idealValues):
         run(filename, boundsVOL, boundsVOH, idealValues)
     """
     res = []
+    optThreshold = -1e-4
 
-    for i in range(3):
-        print("Calibrating... Iteration " + str(i+1) + "/3", end="\r", flush=True)
+    for i in range(2):
+        print("Calibrating... Iteration " + str(i+1) + "/2")
         voh = optimizeVOH(filename, boundsVOH, idealValues["VOH"])
         vol = optimizeVOL(filename, boundsVOL, idealValues["VOL"])
         curr = {'target': voh['target'] + vol['target'], 'params': {**voh['params'], **vol['params']}}
         res.append(curr)
+        if curr['target'] > optThreshold: break
 
     # return element with target closest to 0
     res.sort(key=lambda x: x['target'], reverse=True)
@@ -93,6 +95,12 @@ def run(filename, boundsVOH, boundsVOL, idealValues):
     print(runCmd())
 
 
+def run_with_params(filename: str, RB1_L: int, RB1_R: int,
+                     RB2_L: int, RB2_R: int, VOH: float, VOL: float):
+        run(filename, {"RB1": (RB1_L, RB1_R)},
+                      {"RB2": (RB2_L, RB2_R)},
+                      {"VOH": VOH, "VOL": VOL})
+
 if __name__ == "__main__":
 
     boundsVOH = {"RB1": (1, 1000)}
@@ -101,5 +109,4 @@ if __name__ == "__main__":
     idealValues = {"VOH": 2.32,
                     "VOL": 1.5}
     
-    os.chdir("1822-2408")
     run("1822-2408.inc", boundsVOH, boundsVOL, idealValues)

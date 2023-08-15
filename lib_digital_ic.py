@@ -19,11 +19,11 @@ import re
 MAX_PIN_COUNT = 50
 
 # ---- LVDS MODEL FUNCTIONS ----
-def main_gen_lvds_model(pin_list, pGND=None, pVCC=None, pVEE=None, res_shorts=None, kpn="xxxx_xxxx"):
+def main_gen_lvds_model(pin_list, pGND=None, pVCC=None, pVEE=None, kpn="xxxx_xxxx"):
     if '-' in kpn:
         kpn = kpn.replace('-', '_')
     
-    res = gen_lvds_model(kpn, pin_list, pGND, pVCC, pVEE, res_shorts)
+    res = gen_lvds_model(kpn, pin_list, pGND, pVCC, pVEE)
     res += gen_lvds_clamp_diode(pin_list, pVCC, pGND)
     res += ".ends\n"
     res += "*******************************************************************\n"
@@ -32,7 +32,7 @@ def main_gen_lvds_model(pin_list, pGND=None, pVCC=None, pVEE=None, res_shorts=No
     res += gen_lvds_subckt(kpn)
     return res
 
-def gen_lvds_model(kpn, pin_list, pGND=None, pVCC=None, pVEE=None, res_shorts=None):
+def gen_lvds_model(kpn, pin_list, pGND=None, pVCC=None, pVEE=None):
     '''Function to generate LVDS model'''
     reg_model = ""
     # Check if required pins have been given
@@ -50,12 +50,9 @@ def gen_lvds_model(kpn, pin_list, pGND=None, pVCC=None, pVEE=None, res_shorts=No
     reg_model += get_lvds_model_configurations(kpn, pin_list, pVCC, pGND)
     reg_model += "* \n"
 
-    # Resistor shorts
-    if res_shorts:
-        reg_model += res_shorts
-
-    reg_model+= "*\n"
-    
+    # Generate 1 ohm resistor network for similar pins
+    reg_model += short_similar_pins(pin_list, 1)
+    reg_model += "*\n"
     return reg_model
 
 def get_lvds_model_configurations(kpn, pin_list, pVCC, pGND):
@@ -272,12 +269,12 @@ def gen_lvds_cmd():
 # ---- END OF LVDS FUNCTIONS ----
 
 # ---- START OF ECL FUNCTIONS ----
-def main_gen_ecl_model(pin_list, pGND=None, pVCC=None, pVEE=None, res_shorts=None, kpn="xxxx_xxxx"):
+def main_gen_ecl_model(pin_list, pGND=None, pVCC=None, pVEE=None, kpn="xxxx_xxxx"):
     if '-' in kpn:
         kpn = kpn.replace('-', '_')
 
     res = ""
-    res += gen_ecl_model(kpn, pin_list, pGND, pVCC, pVEE, res_shorts)
+    res += gen_ecl_model(kpn, pin_list, pGND, pVCC, pVEE)
     res += gen_ecl_mcl(pVCC, pGND, pVEE)
     res += ".ends\n"
     res += "*******************************************************************\n"
@@ -287,7 +284,7 @@ def main_gen_ecl_model(pin_list, pGND=None, pVCC=None, pVEE=None, res_shorts=Non
     res += gen_ecl_outp_subckt(kpn)
     return res
 
-def gen_ecl_model(kpn, pin_list, pGND=None, pVCC=None, pVEE=None, res_shorts=None):
+def gen_ecl_model(kpn, pin_list, pGND=None, pVCC=None, pVEE=None):
     '''Function to generate ECL model'''
     reg_model = ""
     # Check if required pins have been given
@@ -307,9 +304,8 @@ def gen_ecl_model(kpn, pin_list, pGND=None, pVCC=None, pVEE=None, res_shorts=Non
         reg_model += get_ecl_model_configurations(kpn, pin_list, pVCC, pVEE)
     reg_model += "* \n"
 
-    # Resistor shorts
-    if res_shorts:
-        reg_model += res_shorts
+    # Generate 1 ohm resistor network for similar pins
+    reg_model += short_similar_pins(pin_list, 1)
 
     reg_model+= "*\n"
     return reg_model
@@ -445,36 +441,36 @@ def gen_ecl_harness(kpn, pin_list, vcc=None, vee=None, vtt=None):
 
     if not (vcc and vee and vtt):
         print("[ERROR] cannot generate ECL harness due to one or more of the required inputs (VCC, VEE/GND & VTD) have not been provided!")
-        return ""
+        # return ""
     
     count = 0
     call_pin_list = []
-    for pin_index in range(len(pin_list)):
-        if "vcc" in pin_list[pin_index][1].lower():
+    for i, pin in enumerate(pin_list):
+        if "vcc" in pin[1].lower():
             call_pin_list.append("%vcc")
-        elif "vee" in pin_list[pin_index][1].lower():
+        elif "vee" in pin[1].lower():
             call_pin_list.append("%vee")
-        elif "not_q0" in pin_list[pin_index][1].lower():
+        elif "not_q0" in pin[1].lower():
             call_pin_list.append("%NOTQ")
-        elif "q0" in pin_list[pin_index][1].lower():
+        elif "q0" in pin[1].lower():
             call_pin_list.append("%Q")
-        elif "not_q" in pin_list[pin_index][1].lower():
-            pin = pin_list[pin_index][1].replace("NOT_Q", "%NOTQ")
+        elif "not_q" in pin[1].lower():
+            pin = pin[1].replace("NOT_Q", "%NOTQ")
             call_pin_list.append(pin)
-        elif "q" in pin_list[pin_index][1].lower():
-            pin = pin_list[pin_index][1].replace("Q", "%Q")
+        elif "q" in pin[1].lower():
+            pin = pin[1].replace("Q", "%Q")
             count +=1
             call_pin_list.append(pin)
-        elif "not_d" in pin_list[pin_index][1].lower() or "not_d0" in pin_list[pin_index][1].lower():
+        elif "not_d" in pin[1].lower() or "not_d0" in pin[1].lower():
             call_pin_list.append("%vinb")
-        elif "d" in pin_list[pin_index][1].lower() or "d0" in pin_list[pin_index][1].lower():
+        elif "d" in pin[1].lower() or "d0" in pin[1].lower():
             call_pin_list.append("%vin")
-        elif "vt" in pin_list[pin_index][1].lower():
+        elif "vt" in pin[1].lower():
             call_pin_list.append("%vtt")
-        elif "gnd" in pin_list[pin_index][1].lower():
+        elif "gnd" in pin[1].lower():
             call_pin_list.append("0")
         else:
-            call_pin_list.append(str(pin_index+1))
+            call_pin_list.append(str(i+1))
 
     # Configuration for fixture.cki
     reg_ecl = "Test circuit for "+kpn+"\n"
@@ -511,8 +507,8 @@ def gen_ecl_cmd(numQ):
     reg_cmd += "print \"\" \n"
     reg_cmd += "print \" Input voltage D : %s\" yvalue(vin,15u)\n"
     reg_cmd += "print \"\" \n"
-    reg_cmd += "print \" Output Q : %s\" yvalue(v(Q),15u)\n"
-    reg_cmd += "print \" Output Q_NOT : %s\" yvalue(v(NOTQ),15u)\n"
+    reg_cmd += "print \" Output VOH : %s\" yvalue(v(Q),15u)\n"
+    reg_cmd += "print \" Output VOL : %s\" yvalue(v(NOTQ),15u)\n"
     if numQ > 0:
         for index in range(0, numQ): 
             reg_cmd += "print \" Output Q"+str(index+1)+" : %s\" yvalue(v(Q"+str(index+1)+"),15u)\n"
@@ -529,11 +525,10 @@ def gen_ecl_cmd(numQ):
     reg_cmd += "#print \" CURRENT MB2 : %s\" yvalue(abs(i(x1.xo.mb2.d)),15u)\n"
     reg_cmd += "#print \" \" \n"
     reg_cmd += "#------PRINTING CURVES NOW--------------------\n"
-    reg_cmd += "print \"**********************************************************\"\n"
-    reg_cmd += "print \" BUS Supply Current IVCC\"\n"
+    reg_cmd += "#print \" BUS Supply Current IVCC\"\n"
     reg_cmd += "\n"
-    reg_cmd += "gr abs(i(vcc)) ; abs(vin) ; abs(v(Q)) ; abs(v(NOTQ))\n"
-    reg_cmd += "print \"***********************************************************\"\n"
+    reg_cmd += "#gr abs(i(vcc)) ; abs(vin) ; abs(v(Q)) ; abs(v(NOTQ))\n"
+    reg_cmd += "#print \"***********************************************************\"\n"
     return reg_cmd
 
 # ---- END OF ECL FUNCTIONS ----
@@ -669,8 +664,8 @@ R4 %b2 %gnd 100
 **********************
 RC50a %vcc %q 50
 RC50b %vcc %qb 50
-QO1 %q %in %e QMOD_OUT
-QO2 %qb %inb %e QMOD_OUT
+QO1 %q %in %e QMOD_IN
+QO2 %qb %inb %e QMOD_IN
 CC1 %q %vcc 500p
 CC2 %qb %vcc 500p
 Rinp %in %vtin 50 
@@ -683,7 +678,7 @@ CE %e %gnd 50p
     cml_subckt += "DINP %in %vcc DMOD_0p5v_10mA\n"
     cml_subckt += "DINN %gnd %in DMOD_0p5v_10mA\n"
     cml_subckt += "*** All Models \n"
-    cml_subckt += ".model QMOD_OUT NPN BF=100 RC=1 RE=1 RB=10\n"
+    cml_subckt += ".model QMOD_IN NPN BF=100 RC=1 RE=1 RB=10\n"
     cml_subckt += ".model DMOD_0p5v_10mA D N=1 IS=33n RS=3.5\n"
     cml_subckt += ".model ML2WN2A UCBMOS NMOS VTO=-0.7 KP=816.3u RD=500m RS=500m\n"
     cml_subckt += "* +RD=5m RS=5m\n"
@@ -701,26 +696,26 @@ def gen_cml_harness(kpn, pin_list, vcc=None, vee=None, vin=None):
         if "_" in kpn:
             kpn = kpn.replace("_", "-")
     
-    if not (vcc and vee and vin):
-        print("[ERROR] cannot generate ECL harness due to one or more of the required inputs (VCC, VEE/GND & VIN/VPOS) have not been provided!")
+    if not (vcc and vee):
+        print("[ERROR] cannot generate CML harness due to one or more of the required inputs (VCC, VEE/GND & VIN/VPOS) have not been provided!")
         return ""
 
     call_pin_list = []
-    for pin_index in range(len(pin_list)):
-        if "vcc" in pin_list[pin_index][1].lower():
+    for i, pin in enumerate(pin_list):
+        if "vcc" in pin[1].lower():
             call_pin_list.append("%VCC")
         #elif "not_q" in pin_list[pin_index][1].lower():
         #    call_pin_list.append("%NOTQ")
         #elif "q" in pin_list[pin_index][1].lower():
         #    call_pin_list.append("%Q")
-        elif "in" in pin_list[pin_index][1].lower() and "_pos" in pin_list[pin_index][1].lower():
+        elif "in" in pin[1].lower() and "_pos" in pin[1].lower():
             call_pin_list.append("%VIN")
         #elif "vt" in pin_list[pin_index][1].lower():
         #    call_pin_list.append("%VT")
-        elif "gnd" in pin_list[pin_index][1].lower():
+        elif "gnd" in pin[1].lower():
             call_pin_list.append("0")
         else:
-            call_pin_list.append(str(pin_index+1))
+            call_pin_list.append(str(i+1))
 
     # Configuration for fixture.cki
     reg_cml = "Test circuit for "+kpn+"\n"
@@ -730,7 +725,7 @@ def gen_cml_harness(kpn, pin_list, vcc=None, vee=None, vin=None):
     reg_cml += "\n\n"
     reg_cml += "VCC %vcc 0 dc PWL(0 0 10u "+vcc+")\n"
     reg_cml += "VEE %GND 0 dc PWL(0 0 10u "+vee+")\n"
-    reg_cml += "VIN %vin 0 dc PWL(0 0 10u "+vin+")\n"
+    # reg_cml += "VIN %vin 0 dc PWL(0 0 10u "+vin+")\n"
     reg_cml += "* VIN %VIN 0 PULSE(3.3 0 0 0 0 10u 20u)\n"
     reg_cml += "*VINB %VINB 0 PULSE(3.3 0 0 0 0 10u 20u)\n"
     reg_cml += "\n\n"
@@ -751,10 +746,10 @@ def gen_cml_cmd():
     reg_cmd += "#------PRINTING NODE VOLTAGES-----------------\n"
     reg_cmd += "print \" positive Supply Voltage VCC : %s\" yvalue(VCC,15u)\n"
     reg_cmd += "print \"\" \n"
-    reg_cmd += "print \" Input voltage D : %s\" yvalue(VIN,15u)\n"
+    reg_cmd += "#print \" Input voltage D : %s\" yvalue(VIN,15u)\n"
     reg_cmd += "print \"\" \n"
-    reg_cmd += "print \" Output Q : %s\" yvalue(v(Q),15u)\n"
-    reg_cmd += "print \" Output Q_NOT : %s\" yvalue(v(NOTQ),15u)\n"
+    reg_cmd += "print \" Output VOH : %s\" yvalue(v(Q),15u)\n"
+    reg_cmd += "print \" Output VOL : %s\" yvalue(v(NOTQ),15u)\n"
     reg_cmd += "\n\n"
     reg_cmd += "#------PRINTING BRANCH CURRENTS---------------\n"
     reg_cmd += "print \"\" \n"
@@ -766,11 +761,11 @@ def gen_cml_cmd():
     reg_cmd += "#print \" CURRENT MB2 : %s\" yvalue(abs(i(x1.xo.mb2.d)),15u)\n"
     reg_cmd += "#print \"\" \n"
     reg_cmd += "#------PRINTING CURVES NOW--------------------\n"
-    reg_cmd += "print \"**********************************************************\"\n"
-    reg_cmd += "print \" BUS Supply Current IVCC\"\n"
+    reg_cmd += "#print \"**********************************************************\"\n"
+    reg_cmd += "#print \" BUS Supply Current IVCC\"\n"
     reg_cmd += "\n"
-    reg_cmd += "gr abs(i(VCC)) ; abs(VIN) ; abs(v(Q)) ; abs(v(NOTQ))\n"
-    reg_cmd += "print \"***********************************************************\"\n"
+    reg_cmd += "#gr abs(i(VCC)) ; abs(VIN) ; abs(v(Q)) ; abs(v(NOTQ))\n"
+    reg_cmd += "#print \"***********************************************************\"\n"
     
     return reg_cmd
 
@@ -809,7 +804,7 @@ def convert_eng_to_sci(number):
         number = number[:-1]+"e+9"
     return float(number)
 
-def short_similar_pins(pin_list, resistance="1"):
+def short_similar_pins(pin_list, resistance=1):
     """Function returns resistor interconnection network for given pin list"""
     global MAX_PIN_COUNT
     merged_pin_list = "\n".join([" ".join(row) for row in pin_list])

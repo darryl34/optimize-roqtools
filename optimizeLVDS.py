@@ -56,18 +56,44 @@ def run(filename, bounds, idealValues):
     print(runCmd())
 
 
+def run_with_params(filename: str, 
+                    MPD1_L: float, MPD1_H: float,
+                    MND1_L: float, MND1_H: float,
+                    P_KP_L: float, P_KP_H: float,
+                    P_RD_L: float, P_RD_H: float,
+                    P_RS_L: float, P_RS_H: float,
+                    N_KP_L: float, N_KP_H: float,
+                    N_RD_L: float, N_RD_H: float,
+                    N_RS_L: float, N_RS_H: float,
+                    VOH: float, VOL: float):
+    
+    bounds = {'MPD1_W': (MPD1_L, MPD1_H),
+            'MND1_W': (MND1_L, MND1_H),
+            'P_KP': (P_KP_L, P_KP_H),
+            'P_RD': (P_RD_L, P_RD_H),
+            'P_RS': (P_RS_L, P_RS_H),
+            'N_KP': (N_KP_L, N_KP_H),
+            'N_RD': (N_RD_L, N_RD_H),
+            'N_RS': (N_RS_L, N_RS_H)}
+    
+    idealValues = {"VOH": VOH, 
+                   "VOL": VOL}
+    
+    run(filename, bounds, idealValues)
+
+
 if __name__ == "__main__":
 
     bounds = {'MPD1_W': (1e-6,1e-3),
             'MND1_W': (1e-6,1e-3),
-            'P_KP': (1e-6,1e-3),
-            'P_RD': (1,300),
-            'P_RS': (1,300),
-            'N_KP': (1e-6,1e-3),
-            'N_RD': (1,300),
-            'N_RS': (1,300)}
+            'P_KP': (1e-5,10e-3),
+            'P_RD': (1,50),
+            'P_RS': (1,50),
+            'N_KP': (1e-5,10e-3),
+            'N_RD': (1,50),
+            'N_RS': (1,50)}
     
-    idealValues = {"VOH": 1.6, 
-                   "VOL": 1.15}
-
-    run("1822-4877.inc", bounds, idealValues)
+    idealValues = {"VOH": 1.41, 
+                   "VOL": 1.05}
+    
+    run("1822-2408.inc", bounds, idealValues)

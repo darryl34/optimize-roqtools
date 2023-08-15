@@ -17,9 +17,9 @@ def optimizeVOL(filename, bounds, VOL):
     )
 
     # define acquisition function
-    utility = UtilityFunction(kind="ucb", kappa=5)
+    utility = UtilityFunction(kind="ucb", kappa=5, kappa_decay=0.95, kappa_decay_delay=10)
 
-    for _ in range(15):
+    for _ in range(25):
         next_point = optimizer.suggest(utility)
         cmlDict = runCML(filename, **next_point)
         target = penaltyFunc(cmlDict["Output VOL"], VOL, -10)
@@ -38,9 +38,9 @@ def optimizeVOH(filename, bounds, VOH):
         bounds_transformer=SequentialDomainReductionTransformer()
     )
 
-    utility = UtilityFunction(kind="ucb", kappa=5)
+    utility = UtilityFunction(kind="ucb", kappa=5, kappa_decay=0.95, kappa_decay_delay=10)
 
-    for _ in range(15):
+    for _ in range(25):
         next_point = optimizer.suggest(utility)
         cmlDict = runCML(filename, **next_point)
         target = penaltyFunc(cmlDict["Output VOH"], VOH, -10)
@@ -78,8 +78,8 @@ def run(filename, boundsVOL, boundsVOH, idealValues):
     """
     res = []
 
-    for i in range(3):
-        print("Calibrating... Iteration " + str(i+1) + "/3", end="\r", flush=True)
+    for i in range(2):
+        print("Calibrating... Iteration " + str(i+1) + "/2")
         vol = optimizeVOL(filename, boundsVOL, idealValues["VOL"])
         voh = optimizeVOH(filename, boundsVOH, idealValues["VOH"])
         curr = {'target': voh['target'] + vol['target'], 'params': {**voh['params'], **vol['params']}}
@@ -92,6 +92,15 @@ def run(filename, boundsVOL, boundsVOH, idealValues):
     print("\nParameters optimized. Running cmd...\n")
     print(runCmd())
 
+
+def run_with_params(filename: str, RB1_L: int, RB1_R: int,
+                    RB2_L: int, RB2_R: int,
+                    RB3_L: int, RB3_R: int,
+                    RB4_L: int, RB4_R: int, 
+                    VOH: float, VOL: float):
+    run(filename, {"R1": (RB1_L, RB1_R), "R2": (RB2_L, RB2_R)},
+                {"R3": (RB3_L, RB3_R), "R4": (RB4_L, RB4_R)},
+                {"VOH": VOH, "VOL": VOL})
 
 if __name__ == "__main__":
 

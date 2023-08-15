@@ -19,15 +19,18 @@
 #  in conjunction with Tcl version 8.6
 #    Jun 14, 2022 08:46:23 AM CST  platform: Windows NT
 
-import sys
-import os
-import re
 import pyperclip as pc
+import sys
 import tkinter as tk
+from tkinter import messagebox
 import tkinter.ttk as ttk
-import subprocess
+
 import digital_ic_gui
 import lib_digital_ic
+import optimizeCML
+import optimizeECL
+import optimizeLVDS
+from util import runCmd
 
 # Global members
 PIN_LIST = []
@@ -39,9 +42,8 @@ def main(*args):
     root = tk.Tk()
     root.protocol( 'WM_DELETE_WINDOW' , root.destroy)
     # Creates a toplevel widget.
-    global _top1, _w1
-    _top1 = root
-    _w1 = digital_ic_gui.Toplevel1(_top1)
+    global _w1
+    _w1 = digital_ic_gui.Toplevel1(root)
     root.mainloop()
 
 def copyBtnClicked(*args):
@@ -51,167 +53,188 @@ def copyBtnClicked(*args):
     sys.stdout.flush()
 
 
+def createLvdsBtnClicked(*args):
+    global _top2, _w2
+    _top2 = tk.Toplevel(root)
+    _w2 = digital_ic_gui.Toplevel2(_top2)
+
+
 def submitLvdsBtnClicked(*args):
     print('digital_ic_support.submitLvdsBtnClicked')
     sys.stdout.flush()
 
-    # Generate model
-    # Generate 1 ohm resistor network for similar pins
-    shorts = lib_digital_ic.short_similar_pins(pin_list=PIN_LIST, resistance="1")
+    # Clear existing output
+    clearScrollText()
+    
+    # Check if all required fields are filled
+    lvds_params_filled = _w2.mpd1_L.get() and _w2.mpd1_H.get() \
+                    and _w2.mnd1_L.get() and _w2.mnd1_H.get() \
+                    and _w2.pKp_L.get() and _w2.pKp_H.get() \
+                    and _w2.pRd_L.get() and _w2.pRd_H.get() \
+                    and _w2.pRs_L.get() and _w2.pRs_H.get() \
+                    and _w2.nKp_L.get() and _w2.nKp_H.get() \
+                    and _w2.nRd_L.get() and _w2.nRd_H.get() \
+                    and _w2.nRs_L.get() and _w2.nRs_H.get() \
+                    and _w2.voh.get() and _w2.vol.get() \
+                    
+    if not checkReqFields() or not lvds_params_filled:
+        messagebox.showerror("Input Error", "Please fill all the required fields.")
+        return
+
+    _top2.withdraw()
+
+    kpn = _w1.kpn.get().replace('-', '_') if '-' in _w1.kpn.get() else _w1.kpn.get()
     
     # Generate model
     print("[INFO] Generating model ...", flush=True)
     reg_model = lib_digital_ic.main_gen_lvds_model(pin_list=PIN_LIST, pGND=_w1.gndPinNum.get(), pVCC=_w1.vccPinNum.get(),
-                    pVEE=_w1.veePinNum.get(), res_shorts=shorts, kpn=_w1.kpn.get())
+                    pVEE=_w1.veePinNum.get(), kpn=kpn)
 
-    _w1.Scrolledtext1.configure(state='normal')
-    _w1.Scrolledtext1.insert(tk.INSERT, reg_model)
-    _w1.Scrolledtext1.configure(state='disabled')
     print("[INFO] Generating model ... done", flush=True)
 
     # write to file
-    with open('{}.inc'.format(_w1.kpn.get()), 'w') as f:
+    model_file = '{}.inc'.format(kpn)
+    with open(model_file, 'w') as f:
         f.write(reg_model)
 
-    _w1.Scrolledtext1.configure(state='normal')
-    _w1.Scrolledtext1.insert(tk.INSERT, "\n\n*******************************************************************\n")
-    _w1.Scrolledtext1.insert(tk.INSERT, "********************END OF MODEL BEGIN HARNESS *********************\n")
-    _w1.Scrolledtext1.insert(tk.INSERT, "*******************************************************************\n\n")
-    _w1.Scrolledtext1.configure(state='disabled')
 
     # Generate harness
     print("[INFO] Generating harness ...", flush=True)
-    reg_harness = lib_digital_ic.gen_lvds_harness(kpn=_w1.kpn.get(), pin_list=PIN_LIST, vcc=_w1.vcc.get(), vPos=_w1.vpos.get(), vNeg=_w1.vneg.get())
+    reg_harness = lib_digital_ic.gen_lvds_harness(kpn=kpn, pin_list=PIN_LIST, vcc=_w1.vcc.get(), vPos=_w1.vpos.get(), vNeg=_w1.vneg.get())
     
-    _w1.Scrolledtext1.configure(state='normal')
-    _w1.Scrolledtext1.insert(tk.INSERT, reg_harness)
-    _w1.Scrolledtext1.configure(state='disabled')
 
     # Open harness.cki file and write reg_harness into ds.cki
     with open("fixture.cki", "w") as f:
         f.write(reg_harness)
     print("[INFO] Generating harness ... done", flush=True)
     
-    _w1.Scrolledtext1.configure(state='normal')
-    _w1.Scrolledtext1.insert(tk.INSERT, "\n\n*******************************************************************\n")
-    _w1.Scrolledtext1.insert(tk.INSERT, "********************END OF HARNESS BEGIN CMD *********************\n")
-    _w1.Scrolledtext1.insert(tk.INSERT, "*******************************************************************\n\n")
-    _w1.Scrolledtext1.configure(state='disabled')
 
     # Generate core.cmd
     print("[INFO] Generating core.cmd..", flush=True)
     reg_core_cmd = lib_digital_ic.gen_lvds_cmd()
-    _w1.Scrolledtext1.configure(state='normal')
-    _w1.Scrolledtext1.insert(tk.INSERT, reg_core_cmd)
-    _w1.Scrolledtext1.configure(state='disabled')
     # create core.cmd and write reg_core_cmd into cmd
     with open("core.cmd", "w") as f:
         f.write(reg_core_cmd)
     print("[INFO] Generating core.cmd ... done", flush=True)
     
-    # TODO: Perform optimization
-    # Execute . cmd_ds
-    subprocess.call(["hpspice","-s","-c","'.","core.cmd'"])
+    # Perform optimization
+    optimizeLVDS.run_with_params(model_file, float(_w2.mpd1_L), float(_w2.mpd1_H),
+                                 float(_w2.mnd1_L), float(_w2.mnd1_H),
+                                 float(_w2.pKp_L), float(_w2.pKp_H),
+                                 float(_w2.pRd_L), float(_w2.pRd_H),
+                                 float(_w2.pRs_L), float(_w2.pRs_H),
+                                 float(_w2.nKp_L), float(_w2.nKp_H),
+                                 float(_w2.nRd_L), float(_w2.nRd_H),
+                                 float(_w2.nRs_L), float(_w2.nRs_H),
+                                 float(_w2.voh) ,float(_w2.vol))
+    
+    # print to result box
+    with open(model_file, 'r') as f:
+        reg_model = f.read()
+
+    _w1.Scrolledtext1.configure(state='normal')
+    _w1.Scrolledtext1.insert(tk.INSERT, reg_model)
+    _w1.Scrolledtext1.insert(tk.INSERT, "\n\n*******************************************************************\n")
+    _w1.Scrolledtext1.insert(tk.INSERT, "********************END OF MODEL BEGIN HARNESS *********************\n")
+    _w1.Scrolledtext1.insert(tk.INSERT, "*******************************************************************\n\n")
+    _w1.Scrolledtext1.insert(tk.INSERT, reg_harness)
+    _w1.Scrolledtext1.insert(tk.INSERT, "\n\n*******************************************************************\n")
+    _w1.Scrolledtext1.insert(tk.INSERT, "********************END OF HARNESS BEGIN CMD *********************\n")
+    _w1.Scrolledtext1.insert(tk.INSERT, "*******************************************************************\n\n")
+    _w1.Scrolledtext1.insert(tk.INSERT, reg_core_cmd)
+    _w1.Scrolledtext1.insert(tk.INSERT, "\n\n*******************************************************************\n")
+    _w1.Scrolledtext1.insert(tk.INSERT, str(runCmd()))
+    _w1.Scrolledtext1.insert(tk.INSERT, "*******************************************************************\n\n")
+    _w1.Scrolledtext1.configure(state='disabled')
     
     #print("[INFO] Generating stress.cmd ... done", flush=True)
     print("[INFO] LVDS modelling completed", flush=True)
 
 
+def createEclBtnClicked(*args):
+    global _top3, _w3
+    _top3 = tk.Toplevel(root)
+    _w3 = digital_ic_gui.Toplevel3(_top3)
+
 def submitEclBtnClicked(*args):
     print('digital_ic_support.submitEclBtnClicked')
     sys.stdout.flush()
 
-    # Generate model
-    # Generate 1 ohm resistor network for similar pins
-    shorts = lib_digital_ic.short_similar_pins(pin_list=PIN_LIST, resistance="1")
+    # Clear existing output
+    clearScrollText()
+
+    # check if all required fields are filled
+    ecl_params_filled = _w3.rb1_L.get() and _w3.rb1_H.get() \
+                and _w3.rb1_L.get() and _w3.rb1_H.get() \
+                and _w3.voh.get() and _w3.vol.get()
+
+    if not checkReqFields() or not ecl_params_filled:
+        messagebox.showerror("Input Error", "Please fill all the required fields.")
+        return
+    
+    _top3.withdraw()
+    kpn = _w1.kpn.get().replace('-', '_') if '-' in _w1.kpn.get() else _w1.kpn.get()
+
     # Generate model
     print("[INFO] Generating model ...", flush=True)
     
     # Generating model based on user's inputs
     reg_model = lib_digital_ic.main_gen_ecl_model(pin_list=PIN_LIST, pGND=_w1.gndPinNum.get(),
-                                                  pVCC=_w1.vccPinNum.get(), pVEE=_w1.veePinNum.get(),
-                                                  res_shorts=shorts, kpn=_w1.kpn.get())
+                                                  pVCC=_w1.vccPinNum.get(), pVEE=_w1.veePinNum.get(), kpn=kpn)
 
-    _w1.Scrolledtext1.configure(state='normal')
-    _w1.Scrolledtext1.insert(tk.INSERT, reg_model)
-    _w1.Scrolledtext1.configure(state='disabled')
     print("[INFO] Generating model ... done", flush=True)
 
     # Create new .inc file
-    with open("{}.inc".format(_w1.kpn.get()), "w") as f:
+    model_file = "{}.inc".format(kpn)
+    with open(model_file, "w") as f:
         f.write(reg_model)
 
-    _w1.Scrolledtext1.configure(state='normal')
-    _w1.Scrolledtext1.insert(tk.INSERT, "\n\n*******************************************************************\n")
-    _w1.Scrolledtext1.insert(tk.INSERT, "********************END OF MODEL BEGIN HARNESS *********************\n")
-    _w1.Scrolledtext1.insert(tk.INSERT, "*******************************************************************\n\n")
-    _w1.Scrolledtext1.configure(state='disabled')
 
     # Generate harness
     print("[INFO] Generating harness ...", flush=True)
-    reg_harness = ""
-    reg_harness, numQ = lib_digital_ic.gen_ecl_harness(kpn=_w1.kpn.get(), pin_list=PIN_LIST, vcc=_w1.vcc.get(), vee=_w1.vee.get(), vtt=_w1.vtt.get())
-    
-    _w1.Scrolledtext1.configure(state='normal')
-    _w1.Scrolledtext1.insert(tk.INSERT, reg_harness)
-    _w1.Scrolledtext1.configure(state='disabled')
+    reg_harness, numQ = lib_digital_ic.gen_ecl_harness(kpn=kpn, pin_list=PIN_LIST, vcc=_w1.vcc.get(), vee=_w1.vee.get(), vtt=_w1.vtt.get())
 
-    # Open harness.cki file and write reg_harness into ds.cki
+    # Open fixture.cki file and write reg_harness into cki file
     with open("fixture.cki", "w") as f:
         f.write(reg_harness)
     print("[INFO] Generating harness ... done", flush=True)
-    
-    _w1.Scrolledtext1.configure(state='normal')
-    _w1.Scrolledtext1.insert(tk.INSERT, "\n\n*******************************************************************\n")
-    _w1.Scrolledtext1.insert(tk.INSERT, "********************END OF HARNESS BEGIN CMD *********************\n")
-    _w1.Scrolledtext1.insert(tk.INSERT, "*******************************************************************\n\n")
-    _w1.Scrolledtext1.configure(state='disabled')
 
     # Generate core.cmd
     print("[INFO] Generating core.cmd..", flush=True)
-    reg_core_cmd = ""
     reg_core_cmd = lib_digital_ic.gen_ecl_cmd(numQ)
-    _w1.Scrolledtext1.configure(state='normal')
-    _w1.Scrolledtext1.insert(tk.INSERT, reg_core_cmd)
-    _w1.Scrolledtext1.configure(state='disabled')
     # create core.cmd and write reg_core_cmd into cmd
     with open("core.cmd", "w") as f:
         f.write(reg_core_cmd)
     print("[INFO] Generating core.cmd ... done", flush=True)
     
-    # Execute . core.cmd
-    subprocess.call(["hpspice","-s","-c","'.","core.cmd'"])
+    print("Calibrating parameters. Please wait...", flush=True)
+    optimizeECL.run_with_params(model_file, int(_w3.rb1_L.get()), int(_w3.rb1_H.get()),
+                int(_w3.rb2_L.get()), int(_w3.rb2_H.get()),
+                float(_w3.voh.get()), float(_w3.vol.get()))
+    
+    with open(model_file, "r") as f:
+        reg_model = f.read()
+
+    _w1.Scrolledtext1.configure(state='normal')
+    _w1.Scrolledtext1.insert(tk.INSERT, reg_model)
+    _w1.Scrolledtext1.insert(tk.INSERT, "\n\n*******************************************************************\n")
+    _w1.Scrolledtext1.insert(tk.INSERT, "********************END OF MODEL BEGIN HARNESS *********************\n")
+    _w1.Scrolledtext1.insert(tk.INSERT, "*******************************************************************\n\n")
+    _w1.Scrolledtext1.insert(tk.INSERT, reg_harness)
+    _w1.Scrolledtext1.insert(tk.INSERT, "\n\n*******************************************************************\n")
+    _w1.Scrolledtext1.insert(tk.INSERT, "********************END OF HARNESS BEGIN CMD *********************\n")
+    _w1.Scrolledtext1.insert(tk.INSERT, "*******************************************************************\n\n")
+    _w1.Scrolledtext1.insert(tk.INSERT, reg_core_cmd)
+    _w1.Scrolledtext1.configure(state='disabled')
 
     #print("[INFO] Generating stress.cmd ... done", flush=True)
     print("[INFO] ECL modelling completed", flush=True)
     
 
 def createCmlBtnClicked(*args):
-    print('digital_ic_support.createCmlBtnClicked')
-    sys.stdout.flush()
-
-    # Clear existing output
-    _w1.Scrolledtext1.configure(state='normal')
-    _w1.Scrolledtext1.delete("1.0", tk.END)
-    _w1.Scrolledtext1.configure(state='disabled')
-
-    # Check for user's input on model settings and generate for harness and cmd
     global _top4, _w4
     _top4 = tk.Toplevel(root)
     _w4 = digital_ic_gui.Toplevel4(_top4)
-
-def fillCmlBtnClicked(*args):  
-    print('digital_ic_support.fillEclBtnClicked')
-    sys.stdout.flush()
-
-    _w4.rPD.set("38")
-    _w4.rPDCurrent.set("90m")
-    _w4.rPDVoltage.set("2.5")
-    _w4.dVoltage.set("0.5")
-    _w4.dCurrent.set("40m")
-    _w4.dN.set("1")
-    _w4.dIS.set("33n")
-    _w4.dRS.set("3.5")
 
 def submitCmlBtnClicked(*args):
     print('digital_ic_support.submitCmlBtnClicked')
@@ -219,73 +242,79 @@ def submitCmlBtnClicked(*args):
         print ('another arg:', arg)
     sys.stdout.flush()
 
-    # Generate model
+    # Clear existing output
+    clearScrollText()
+
+    cml_params_filled = _w4.rb1_L.get() and _w4.rb1_H.get() \
+                        and _w4.rb2_L.get() and _w4.rb2_H.get() \
+                        and _w4.rb3_L.get() and _w4.rb3_H.get() \
+                        and _w4.rb4_L.get() and _w4.rb4_H.get() \
+                        and _w4.voh.get() and _w4.vol.get()
+
+
+    if not checkReqFields() or not cml_params_filled:
+        messagebox.showerror("Input Error", "Please fill all the required fields.")
+        return
+
+    kpn = _w1.kpn.get().replace('-', '_') if '-' in _w1.kpn.get() else _w1.kpn.get()
+
     # Generate 1 ohm resistor network for similar pins
-    shorts = lib_digital_ic.short_similar_pins(pin_list=PIN_LIST, resistance="1")
+    shorts = lib_digital_ic.short_similar_pins(pin_list=PIN_LIST, resistance=1)
+    
     # Generate model
     print("[INFO] Generating model ...", flush=True)
-    reg_model = ""
-    
-    # Generating model based on user's inputs
-    reg_model += lib_digital_ic.main_gen_cml_model(pin_list=PIN_LIST, pGND=_w1.gndPinNum.get(),
+    reg_model = lib_digital_ic.main_gen_cml_model(pin_list=PIN_LIST, pGND=_w1.gndPinNum.get(),
                                                    pVCC=_w1.vccPinNum.get(), pVEE=_w1.veePinNum.get(),
-                                                   res_shorts=shorts,kpn=_w1.kpn.get()) 
+                                                   res_shorts=shorts,kpn=kpn) 
 
-    _w1.Scrolledtext1.configure(state='normal')
-    _w1.Scrolledtext1.insert(tk.INSERT, reg_model)
-    _w1.Scrolledtext1.configure(state='disabled')
     print("[INFO] Generating model ... done", flush=True)
 
     # Create new .inc file
-    with open('{}.inc'.format(_w1.kpn.get()), 'w') as f:
+    model_file = '{}.inc'.format(kpn)
+    with open(model_file, 'w') as f:
         f.write(reg_model)
 
-    _w1.Scrolledtext1.configure(state='normal')
-    _w1.Scrolledtext1.insert(tk.INSERT, "\n\n*******************************************************************\n")
-    _w1.Scrolledtext1.insert(tk.INSERT, "********************END OF MODEL BEGIN HARNESS *********************\n")
-    _w1.Scrolledtext1.insert(tk.INSERT, "*******************************************************************\n\n")
-    _w1.Scrolledtext1.configure(state='disabled')
 
     # Generate harness
     print("[INFO] Generating harness ...", flush=True)
-    reg_harness = ""
-    reg_harness = lib_digital_ic.gen_cml_harness(kpn=_w1.kpn.get(), pin_list=PIN_LIST, vcc=_w1.vcc.get(), vee=_w1.vee.get(), vin=_w1.vpos.get())
+    reg_harness = lib_digital_ic.gen_cml_harness(kpn=kpn, pin_list=PIN_LIST, vcc=_w1.vcc.get(), vee=_w1.vee.get(), vin=_w1.vpos.get())
     
-    _w1.Scrolledtext1.configure(state='normal')
-    _w1.Scrolledtext1.insert(tk.INSERT, reg_harness)
-    _w1.Scrolledtext1.configure(state='disabled')
 
     # Open harness.cki file and write reg_harness into ds.cki
-    wf = open("fixture.cki", "w")
-    wf.write(reg_harness)
-    wf.close()
+    with open("fixture.cki", "w") as f:
+        f.write(reg_harness)
     print("[INFO] Generating harness ... done", flush=True)
     
-    _w1.Scrolledtext1.configure(state='normal')
-    _w1.Scrolledtext1.insert(tk.INSERT, "\n\n*******************************************************************\n")
-    _w1.Scrolledtext1.insert(tk.INSERT, "********************END OF HARNESS BEGIN CMD *********************\n")
-    _w1.Scrolledtext1.insert(tk.INSERT, "*******************************************************************\n\n")
-    _w1.Scrolledtext1.configure(state='disabled')
 
     # Generate core.cmd
     print("[INFO] Generating core.cmd..", flush=True)
-    reg_core_cmd = ""
     reg_core_cmd = lib_digital_ic.gen_cml_cmd()
     
+    
+    # create core.cmd and write reg_core_cmd into cmd
+    with open("core.cmd", "w") as f:
+        f.write(reg_core_cmd)
+    print("[INFO] Generating core.cmd ... done", flush=True)
+    
+    print("Calibrating parameters. Please wait...", flush=True)
+    optimizeCML.run_with_params(model_file, int(_w4.rb1_L.get()), int(_w4.rb1_H.get()),
+                                int(_w4.rb2_L.get()), int(_w4.rb2_H.get()),
+                                int(_w4.rb3_L.get()), int(_w4.rb3_H.get()),
+                                int(_w4.rb4_L.get()), int(_w4.rb4_H.get()),
+                                float(_w4.voh.get()), float(_w4.vol.get()))
+
     _w1.Scrolledtext1.configure(state='normal')
+    _w1.Scrolledtext1.insert(tk.INSERT, reg_model)
+    _w1.Scrolledtext1.insert(tk.INSERT, "\n\n*******************************************************************\n")
+    _w1.Scrolledtext1.insert(tk.INSERT, "********************END OF MODEL BEGIN HARNESS *********************\n")
+    _w1.Scrolledtext1.insert(tk.INSERT, "*******************************************************************\n\n")
+    _w1.Scrolledtext1.insert(tk.INSERT, reg_harness)
+    _w1.Scrolledtext1.insert(tk.INSERT, "\n\n*******************************************************************\n")
+    _w1.Scrolledtext1.insert(tk.INSERT, "********************END OF HARNESS BEGIN CMD *********************\n")
+    _w1.Scrolledtext1.insert(tk.INSERT, "*******************************************************************\n\n")
     _w1.Scrolledtext1.insert(tk.INSERT, reg_core_cmd)
     _w1.Scrolledtext1.configure(state='disabled')
     
-    # create core.cmd and write reg_core_cmd into cmd
-    wf = open("core.cmd", "w")
-    wf.write(reg_core_cmd)
-    wf.close()
-    print("[INFO] Generating core.cmd ... done", flush=True)
-    
-    # Execute . core.cmd
-    subprocess.call(["hpspice","-s","-c","'.","core.cmd'"])
-
-    #print("[INFO] Generating cmd_eff ... done", flush=True)
     print("[INFO] CML modelling completed", flush=True)
     
 
@@ -306,41 +335,41 @@ def loadPinBtnClicked(*args):
                 temp = x.split()
                 if temp[1].isnumeric() or "%" in temp[1]:
                     pin.append([temp[1],temp[2]])
-                    pin_count = pin_count + 1
+                    pin_count += 1
             PIN_LIST[:] = list(pin)
             
             # Rename pins with same name
             pin_names=[item[1] for item in PIN_LIST]
-            pin_numbs=[item[0] for item in PIN_LIST]
+            pin_nums=[item[0] for item in PIN_LIST]
             p_lst_dups = set()
             PIN_LIST = []
-            for i in range(0, pin_count):
+            for i in range(pin_count):
                 count = pin_names.count(pin_names[i])
                 if count > 1:
                     p_lst_dups.add(pin_names[i])
                     pin_names[i] = pin_names[i]+"_"+str(count)
                 elif pin_names[i] in p_lst_dups:
                     pin_names[i] = pin_names[i]+"_1"
-                PIN_LIST.append([pin_numbs[i], pin_names[i]])
+                PIN_LIST.append([pin_nums[i], pin_names[i]])
                 pin_names[i] = ''
-                pin_numbs[i] = ''
+                pin_nums[i] = ''
             # PIN_LIST.reverse()
 
             search_list = PIN_LIST
-            ser_pin_list = list(range(0,len(search_list)))
+            ser_pin_list = list(range(len(search_list)))
             updatePinList()
             clrList()
             _w1.pinNum.set('''Number of Pins : '''+str(pin_count)) 
 
             # Attempt to auto detect pins
             # Reset entry boxes
-            _w1.gndPinNum.set("")
-            _w1.vccPinNum.set("")
-            _w1.veePinNum.set("")
-            _w1.vbbPinNum.set("")
-            _w1.inselPinNum.set("")
-            _w1.refPinNum.set("")
-            _w1.vtrPinNum.set("")
+            # _w1.gndPinNum.set("")
+            # _w1.vccPinNum.set("")
+            # _w1.veePinNum.set("")
+            # _w1.vbbPinNum.set("")
+            # _w1.inselPinNum.set("")
+            # _w1.refPinNum.set("")
+            # _w1.vtrPinNum.set("")
             for pin in PIN_LIST:
                 if not _w1.vccPinNum.get() and "vcc" in pin[1].lower():
                     _w1.vccPinNum.set(pin[0])
@@ -358,7 +387,7 @@ def loadPinBtnClicked(*args):
                     _w1.vtrPinNum.set(pin[0])
 
         else:
-            tk.messagebox.showerror("Input Error", "Either Input Pin Information is empty or first line in the box is empty.")
+            messagebox.showerror("Input Error", "Either Input Pin Information is empty or first line in the box is empty.")
             
     except Exception as e:
         print("Error in assigning: ",e)
@@ -413,5 +442,8 @@ def clearScrollText():
     _w1.Scrolledtext1.delete("1.0", tk.END)
     _w1.Scrolledtext1.configure(state='disabled')
 
+def checkReqFields():
+    return _w1.vccPinNum.get() and _w1.gndPinNum.get() and _w1.kpn.get() and _w1.vcc.get()
+
 if __name__ == '__main__':
-    main()
+    digital_ic_gui.start()
