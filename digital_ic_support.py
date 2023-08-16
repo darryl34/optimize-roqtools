@@ -87,7 +87,8 @@ def submitLvdsBtnClicked(*args):
     
     # Generate model
     print("[INFO] Generating model ...", flush=True)
-    reg_model = lib_digital_ic.main_gen_lvds_model(pin_list=PIN_LIST, pGND=_w1.gndPinNum.get(), pVCC=_w1.vccPinNum.get(),
+    reg_model = lib_digital_ic.main_gen_lvds_model(pin_list=PIN_LIST, inputType=_w1.inputInterfaceOption.get(),
+                    pGND=_w1.gndPinNum.get(), pVCC=_w1.vccPinNum.get(),
                     pVEE=_w1.veePinNum.get(), kpn=kpn)
 
     print("[INFO] Generating model ... done", flush=True)
@@ -155,6 +156,7 @@ def createEclBtnClicked(*args):
     global _top3, _w3
     _top3 = tk.Toplevel(root)
     _w3 = digital_ic_gui.Toplevel3(_top3)
+    print(_w1.inputInterfaceOption.get())
 
 def submitEclBtnClicked(*args):
     print('digital_ic_support.submitEclBtnClicked')
@@ -179,7 +181,7 @@ def submitEclBtnClicked(*args):
     print("[INFO] Generating model ...", flush=True)
     
     # Generating model based on user's inputs
-    reg_model = lib_digital_ic.main_gen_ecl_model(pin_list=PIN_LIST, pGND=_w1.gndPinNum.get(),
+    reg_model = lib_digital_ic.main_gen_ecl_model(pin_list=PIN_LIST, inputType=_w1.inputInterfaceOption.get(), pGND=_w1.gndPinNum.get(),
                                                   pVCC=_w1.vccPinNum.get(), pVEE=_w1.veePinNum.get(), kpn=kpn)
 
     print("[INFO] Generating model ... done", flush=True)
@@ -263,7 +265,7 @@ def submitCmlBtnClicked(*args):
     
     # Generate model
     print("[INFO] Generating model ...", flush=True)
-    reg_model = lib_digital_ic.main_gen_cml_model(pin_list=PIN_LIST, pGND=_w1.gndPinNum.get(),
+    reg_model = lib_digital_ic.main_gen_cml_model(pin_list=PIN_LIST, inputType=_w1.inputInterfaceOption.get(), pGND=_w1.gndPinNum.get(),
                                                    pVCC=_w1.vccPinNum.get(), pVEE=_w1.veePinNum.get(),
                                                    res_shorts=shorts,kpn=kpn) 
 

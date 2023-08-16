@@ -119,18 +119,15 @@ class Toplevel1:
         self.vneg = tk.StringVar()
         self.vee = tk.StringVar()
         self.vtt = tk.StringVar()
+        self.inputInterfaceOption = tk.StringVar()
         
-        self.chkgensetup = tk.IntVar()
-
 
         self.Labelframe1 = ttk.LabelFrame(self.top, style='labelFrame.TLabelframe')
-        self.Labelframe1.place(relx=0.025, rely=0.025, relheight=0.95
-                , relwidth=0.15)
+        self.Labelframe1.place(relx=0.025, rely=0.025, relheight=0.95, relwidth=0.15)
         self.Labelframe1.configure(text='''Input Pin Information''')
 
         self.pinInfoText = tk.Text(self.Labelframe1)
-        self.pinInfoText.place(relx=0.040, rely=0.035, relheight=0.85
-                , relwidth=0.9, bordermode='ignore')
+        self.pinInfoText.place(relx=0.040, rely=0.035, relheight=0.85, relwidth=0.9, bordermode='ignore')
         self.pinInfoText.configure(background="white")
         self.pinInfoText.configure(borderwidth="2")
         self.pinInfoText.configure(font="TkTextFont")
@@ -177,165 +174,131 @@ class Toplevel1:
         
         # Pin labels and entries configuration
         self.vccPinLabel = ttk.Label(self.Labelframe2, style='label.TLabel')
-        self.vccPinLabel.place(relx=0.30, rely=0.03, height=32, width=170
-                , bordermode='ignore')
+        self.vccPinLabel.place(relx=0.30, rely=0.03, height=32, width=170, bordermode='ignore')
         self.vccPinLabel.configure(text='''*VCC pin number :''')
-        self.vccPinEntry = ttk.Entry(self.Labelframe2, style='entry.TEntry')
-        self.vccPinEntry.place(relx=0.5, rely=0.035, height=25, relwidth=0.173
-                , bordermode='ignore')
-        self.vccPinEntry.configure(textvariable=self.vccPinNum)
+        self.vccPinEntry = ttk.Entry(self.Labelframe2, style='entry.TEntry', textvariable=self.vccPinNum)
+        self.vccPinEntry.place(relx=0.5, rely=0.035, height=25, relwidth=0.173, bordermode='ignore')
         
         self.gndPinLabel = ttk.Label(self.Labelframe2, style='label.TLabel')
-        self.gndPinLabel.place(relx=0.30, rely=0.08, height=32, width=170
-                , bordermode='ignore')
+        self.gndPinLabel.place(relx=0.30, rely=0.08, height=32, width=170, bordermode='ignore')
         self.gndPinLabel.configure(text='''*GND pin number :''')
-        self.gndPinEntry = ttk.Entry(self.Labelframe2, style='entry.TEntry')
-        self.gndPinEntry.place(relx=0.5, rely=0.085, height=25, relwidth=0.173
-                , bordermode='ignore')
-        self.gndPinEntry.configure(textvariable=self.gndPinNum)
+        self.gndPinEntry = ttk.Entry(self.Labelframe2, style='entry.TEntry', textvariable=self.gndPinNum)
+        self.gndPinEntry.place(relx=0.5, rely=0.085, height=25, relwidth=0.173, bordermode='ignore')
         
         self.veePinLabel = ttk.Label(self.Labelframe2, style='label.TLabel')
-        self.veePinLabel.place(relx=0.30, rely=0.13, height=32, width=170
-                , bordermode='ignore')
+        self.veePinLabel.place(relx=0.30, rely=0.13, height=32, width=170, bordermode='ignore')
         self.veePinLabel.configure(text='''VEE pin number :''')
-        self.veePinEntry = ttk.Entry(self.Labelframe2, style='entry.TEntry')
-        self.veePinEntry.place(relx=0.5, rely=0.135, height=25, relwidth=0.173
-                , bordermode='ignore')
-        self.veePinEntry.configure(textvariable=self.veePinNum)
+        self.veePinEntry = ttk.Entry(self.Labelframe2, style='entry.TEntry', textvariable=self.veePinNum)
+        self.veePinEntry.place(relx=0.5, rely=0.135, height=25, relwidth=0.173, bordermode='ignore')
         
         self.inselPinLabel = ttk.Label(self.Labelframe2, style='label.TLabel')
-        self.inselPinLabel.place(relx=0.30, rely=0.18, height=32, width=170
-                , bordermode='ignore')
+        self.inselPinLabel.place(relx=0.30, rely=0.18, height=32, width=170, bordermode='ignore')
         self.inselPinLabel.configure(text='''IN SEL pin number :''')
-        self.inselPinEntry = ttk.Entry(self.Labelframe2, style='entry.TEntry')
-        self.inselPinEntry.place(relx=0.5, rely=0.185, height=25, relwidth=0.173
-                , bordermode='ignore')
-        self.inselPinEntry.configure(textvariable=self.inselPinNum)
+        self.inselPinEntry = ttk.Entry(self.Labelframe2, style='entry.TEntry', textvariable=self.inselPinNum)
+        self.inselPinEntry.place(relx=0.5, rely=0.185, height=25, relwidth=0.173, bordermode='ignore')
         
         self.refPinLabel = ttk.Label(self.Labelframe2, style='label.TLabel')
-        self.refPinLabel.place(relx=0.30, rely=0.23, height=32, width=170
-                , bordermode='ignore')
+        self.refPinLabel.place(relx=0.30, rely=0.23, height=32, width=170, bordermode='ignore')
         self.refPinLabel.configure(text='''VAC_REF pin number :''')
-        self.refPinEntry = ttk.Entry(self.Labelframe2, style='entry.TEntry')
-        self.refPinEntry.place(relx=0.5, rely=0.235, height=25, relwidth=0.173
-                , bordermode='ignore')
-        self.refPinEntry.configure(textvariable=self.refPinNum)
+        self.refPinEntry = ttk.Entry(self.Labelframe2, style='entry.TEntry', textvariable=self.refPinNum)
+        self.refPinEntry.place(relx=0.5, rely=0.235, height=25, relwidth=0.173, bordermode='ignore')
         
         self.vbbPinLabel = ttk.Label(self.Labelframe2, style='label.TLabel')
-        self.vbbPinLabel.place(relx=0.30, rely=0.28, height=32, width=170
-                , bordermode='ignore')
+        self.vbbPinLabel.place(relx=0.30, rely=0.28, height=32, width=170, bordermode='ignore')
         self.vbbPinLabel.configure(text='''VBB pin number :''')
-        self.vbbPinEntry = ttk.Entry(self.Labelframe2, style='entry.TEntry')
-        self.vbbPinEntry.place(relx=0.5, rely=0.285, height=25, relwidth=0.173
-                , bordermode='ignore')
-        self.vbbPinEntry.configure(textvariable=self.vbbPinNum)
+        self.vbbPinEntry = ttk.Entry(self.Labelframe2, style='entry.TEntry', textvariable=self.vbbPinNum)
+        self.vbbPinEntry.place(relx=0.5, rely=0.285, height=25, relwidth=0.173, bordermode='ignore')
+        
         self.vtrPinLabel = ttk.Label(self.Labelframe2, style='label.TLabel')
-        self.vtrPinLabel.place(relx=0.30, rely=0.33, height=32, width=170
-                , bordermode='ignore')
+        self.vtrPinLabel.place(relx=0.30, rely=0.33, height=32, width=170, bordermode='ignore')
         self.vtrPinLabel.configure(text='''VTR pin number :''')
-        self.vtrPinEntry = ttk.Entry(self.Labelframe2, style='entry.TEntry')
-        self.vtrPinEntry.place(relx=0.5, rely=0.335, height=25, relwidth=0.173
-                , bordermode='ignore')
-        self.vtrPinEntry.configure(textvariable=self.vtrPinNum)
+        self.vtrPinEntry = ttk.Entry(self.Labelframe2, style='entry.TEntry', textvariable=self.vtrPinNum)
+        self.vtrPinEntry.place(relx=0.5, rely=0.335, height=25, relwidth=0.173, bordermode='ignore')
         
         self.kpnLabel = ttk.Label(self.Labelframe2, style='label.TLabel')
-        self.kpnLabel.place(relx=0.70, rely=0.030, height=31, width=84
-                , bordermode='ignore')
+        self.kpnLabel.place(relx=0.70, rely=0.030, height=31, width=84, bordermode='ignore')
         self.kpnLabel.configure(text='''*KPN :''')
-        self.kpnEntry = ttk.Entry(self.Labelframe2, style='entry.TEntry')
-        self.kpnEntry.place(relx=0.78, rely=0.035, height=25, relwidth=0.173
-                , bordermode='ignore')
-        self.kpnEntry.configure(textvariable=self.kpn)
+        self.kpnEntry = ttk.Entry(self.Labelframe2, style='entry.TEntry', textvariable=self.kpn)
+        self.kpnEntry.place(relx=0.78, rely=0.035, height=25, relwidth=0.173, bordermode='ignore')
 
         self.Labelframe3 = ttk.LabelFrame(self.top, style='Labelframe.TLabelframe')
-        self.Labelframe3.place(relx=0.33, rely=0.4, relheight=0.5
-                , relwidth=0.34)
+        self.Labelframe3.place(relx=0.33, rely=0.4, relheight=0.5, relwidth=0.34)
         self.Labelframe3.configure(text='''Harness Configuration''')
 
         self.vccLabel = ttk.Label(self.Labelframe3, style='label.TLabel')
-        self.vccLabel.place(relx=0.10, rely=0.10, height=31, width=84
-                , bordermode='ignore')
+        self.vccLabel.place(relx=0.10, rely=0.10, height=31, width=84, bordermode='ignore')
         self.vccLabel.configure(text='''*VCC (V):''')
-        self.vccEntry = ttk.Entry(self.Labelframe3, style='entry.TEntry')
-        self.vccEntry.place(relx=0.30, rely=0.10, height=25, relwidth=0.173
-                , bordermode='ignore')
-        self.vccEntry.configure(textvariable=self.vcc)
+        self.vccEntry = ttk.Entry(self.Labelframe3, style='entry.TEntry', textvariable=self.vcc)
+        self.vccEntry.place(relx=0.30, rely=0.10, height=25, relwidth=0.173, bordermode='ignore')
 
         self.vposLabel = ttk.Label(self.Labelframe3, style='label.TLabel')
         self.vposLabel.place(relx=0.10, rely=0.20, height=31, width=84, bordermode='ignore')
         self.vposLabel.configure(text='''VIN / V_POS (V):''')
-        self.vposEntry = ttk.Entry(self.Labelframe3, style='entry.TEntry')
+        self.vposEntry = ttk.Entry(self.Labelframe3, style='entry.TEntry', textvariable=self.vpos)
         self.vposEntry.place(relx=0.30, rely=0.20, height=25, relwidth=0.173, bordermode='ignore')
-        self.vposEntry.configure(textvariable=self.vpos)
 
         self.vnegLabel = ttk.Label(self.Labelframe3, style='label.TLabel')
         self.vnegLabel.place(relx=0.10, rely=0.30, height=31, width=84, bordermode='ignore')
         self.vnegLabel.configure(text='''V_NEG (V):''')
-        self.vnegEntry = ttk.Entry(self.Labelframe3, style='entry.TEntry')
+        self.vnegEntry = ttk.Entry(self.Labelframe3, style='entry.TEntry', textvariable=self.vneg)
         self.vnegEntry.place(relx=0.30, rely=0.30, height=25, relwidth=0.173, bordermode='ignore')
-        self.vnegEntry.configure(textvariable=self.vneg)
 
         self.veeLabel = ttk.Label(self.Labelframe3, style='label.TLabel')
         self.veeLabel.place(relx=0.10, rely=0.40, height=31, width=84, bordermode='ignore')
         self.veeLabel.configure(text='''VEE (V):''')
-        self.veeEntry = ttk.Entry(self.Labelframe3, style='entry.TEntry')
+        self.veeEntry = ttk.Entry(self.Labelframe3, style='entry.TEntry', textvariable=self.vee)
         self.veeEntry.place(relx=0.30, rely=0.40, height=25, relwidth=0.173, bordermode='ignore')
-        self.veeEntry.configure(textvariable=self.vee)
 
         self.vttLabel = ttk.Label(self.Labelframe3, style='label.TLabel')
         self.vttLabel.place(relx=0.10, rely=0.50, height=31, width=84, bordermode='ignore')
         self.vttLabel.configure(text='''VT (V):''')
-        self.vttEntry = ttk.Entry(self.Labelframe3, style='entry.TEntry')
+        self.vttEntry = ttk.Entry(self.Labelframe3, style='entry.TEntry', textvariable=self.vtt)
         self.vttEntry.place(relx=0.30, rely=0.50, height=25, relwidth=0.173, bordermode='ignore')
-        self.vttEntry.configure(textvariable=self.vtt)
 
         self.Label = ttk.Label(self.Labelframe3, style='label.TLabel')
-        self.Label.place(relx=0.55, rely=0.04, height=32, width=200, bordermode='ignore')
-        self.Label.configure(compound='left')
-        self.Label.configure(text='''Please Key in Harness Configuration''')
+        self.Label.place(relx=0.55, rely=0.03, height=30, width=200, bordermode='ignore')
+        self.Label.configure(text='''Input Interface''')
 
-        self.Labe2 = ttk.Label(self.Labelframe3, style='label.TLabel')
-        self.Labe2.place(relx=0.55, rely=0.09, height=32, width=200, bordermode='ignore')
-        self.Labe2.configure(compound='left')
-        self.Labe2.configure(text='''before clicking the button below: ''')
+        self.inputInterface = ttk.Combobox(self.Labelframe3, textvariable=self.inputInterfaceOption, state='readonly', takefocus=False)
+        self.inputInterface.place(relx=0.55, rely=0.10, relheight=0.06, relwidth=0.35, bordermode='ignore')
+        self.inputInterface["values"] = ('LVDS', 'ECL', 'CML')
+        self.inputInterface.current(0)
+        self.inputInterface.bind('<<ComboboxSelected>>', lambda e: self.Labelframe3.focus())
 
         self.createBtn = ttk.Button(self.Labelframe3, style='button.TButton', takefocus=False)
-        self.createBtn.place(relx=0.65, rely=0.165, height=34, width=107, bordermode='ignore')
+        self.createBtn.place(relx=0.65, rely=0.19, height=34, width=107, bordermode='ignore')
         self.createBtn.configure(text='''Generate LVDS''')
         self.createBtn.bind('<ButtonRelease-1>', lambda e:digital_ic_support.createLvdsBtnClicked(e))
         self.createBtn.bind('<Return>', lambda e:digital_ic_support.createLvdsBtnClicked(e))
 
         self.createBtn = ttk.Button(self.Labelframe3, style='button.TButton', takefocus=False)
-        self.createBtn.place(relx=0.65, rely=0.265, height=34, width=107, bordermode='ignore')
+        self.createBtn.place(relx=0.65, rely=0.29, height=34, width=107, bordermode='ignore')
         self.createBtn.configure(text='''Generate ECL''')
         self.createBtn.bind('<ButtonRelease-1>', lambda e:digital_ic_support.createEclBtnClicked(e))
         self.createBtn.bind('<Return>', lambda e:digital_ic_support.createEclBtnClicked(e))
 
         self.createBtn = ttk.Button(self.Labelframe3, style='button.TButton', takefocus=False)
-        self.createBtn.place(relx=0.65, rely=0.365, height=34, width=107, bordermode='ignore')
+        self.createBtn.place(relx=0.65, rely=0.39, height=34, width=107, bordermode='ignore')
         self.createBtn.configure(text='''Generate CML''')
         self.createBtn.bind('<ButtonRelease-1>', lambda e:digital_ic_support.createCmlBtnClicked(e))
         self.createBtn.bind('<Return>', lambda e:digital_ic_support.createCmlBtnClicked(e))
 
         self.resetBtn = ttk.Button(self.Labelframe3, style='button.TButton', takefocus=False)
-        self.resetBtn.place(relx=0.65, rely=0.465, height=34, width=107, bordermode='ignore')
+        self.resetBtn.place(relx=0.65, rely=0.49, height=34, width=107, bordermode='ignore')
         self.resetBtn.configure(text='''Reset Settings''')
         self.resetBtn.bind('<Button-1>',lambda e:digital_ic_support.resetBtnClicked(e))
         self.resetBtn.bind('<Return>', lambda e:digital_ic_support.resetBtnClicked(e))
 
         self.Label1 = ttk.Label(self.Labelframe2, style='label.TLabel')
-        self.Label1.place(relx=0.35, rely=0.93, height=21, width=75
-                , bordermode='ignore')
+        self.Label1.place(relx=0.35, rely=0.93, height=21, width=75, bordermode='ignore')
         self.Label1.configure(text='''*required''')
 
         self.Labelframe4 = ttk.LabelFrame(self.top, style='labelframe.TLabelframe')
-        self.Labelframe4.place(relx=0.68, rely=0.025, relheight=0.95
-                , relwidth=0.32)
+        self.Labelframe4.place(relx=0.68, rely=0.025, relheight=0.95, relwidth=0.32)
         self.Labelframe4.configure(text='''Result''')
 
         self.Scrolledtext1 = ScrolledText(self.Labelframe4)
-        self.Scrolledtext1.place(relx=0.044, rely=0.037, relheight=0.889
-                , relwidth=0.918, bordermode='ignore')
+        self.Scrolledtext1.place(relx=0.044, rely=0.037, relheight=0.889, relwidth=0.918, bordermode='ignore')
         self.Scrolledtext1.configure(background="white")
         self.Scrolledtext1.configure(font="TkTextFont")
         self.Scrolledtext1.configure(foreground="black")
@@ -349,8 +312,7 @@ class Toplevel1:
         self.Scrolledtext1.configure(wrap="none")
 
         self.copyBtn = ttk.Button(self.Labelframe4, style='button.TButton', takefocus=False)
-        self.copyBtn.place(relx=0.7, rely=0.939, height=34, width=97
-                , bordermode='ignore')
+        self.copyBtn.place(relx=0.7, rely=0.939, height=34, width=97, bordermode='ignore')
         self.copyBtn.configure(text='''Copy''')
         self.copyBtn.bind('<Button-1>', lambda e:digital_ic_support.copyBtnClicked(e))
         self.copyBtn.bind('<Return>', lambda e:digital_ic_support.copyBtnClicked(e))
