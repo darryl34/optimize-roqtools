@@ -82,7 +82,7 @@ def run(filename, bounds):
     res = []
 
     for i in range(3):
-        print("Calibrating T... Iteration: " + str(i+1) + "/3", end="\r", flush=True)
+        print("Calibrating T and S... Iteration: " + str(i+1) + "/3", end="\r", flush=True)
         res.append(optimizeT(filename, bounds))
     
     # sort by target value

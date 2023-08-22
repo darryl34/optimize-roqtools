@@ -83,13 +83,12 @@ def submitLvdsBtnClicked(*args):
 
     _top2.withdraw()
 
-    kpn = _w1.kpn.get().replace('-', '_') if '-' in _w1.kpn.get() else _w1.kpn.get()
+    kpn = _w1.kpn.get()
     
     # Generate model
     print("[INFO] Generating model ...", flush=True)
     reg_model = lib_digital_ic.main_gen_lvds_model(pin_list=PIN_LIST, inputType=_w1.inputInterfaceOption.get(),
-                    pGND=_w1.gndPinNum.get(), pVCC=_w1.vccPinNum.get(),
-                    pVEE=_w1.veePinNum.get(), kpn=kpn)
+                    pVCC=_w1.vccPinNum.get(), pGND=_w1.gndPinNum.get(), kpn=kpn)
 
     print("[INFO] Generating model ... done", flush=True)
 
@@ -101,7 +100,7 @@ def submitLvdsBtnClicked(*args):
 
     # Generate harness
     print("[INFO] Generating harness ...", flush=True)
-    reg_harness = lib_digital_ic.gen_lvds_harness(kpn=kpn, pin_list=PIN_LIST, vcc=_w1.vcc.get(), vPos=_w1.vpos.get(), vNeg=_w1.vneg.get())
+    reg_harness = lib_digital_ic.gen_lvds_harness(kpn=kpn, pin_list=PIN_LIST, vcc=_w1.vcc.get(), vPos=_w1.vin.get(), vNeg=_w1.vee.get())
     
 
     # Open harness.cki file and write reg_harness into ds.cki
@@ -112,22 +111,27 @@ def submitLvdsBtnClicked(*args):
 
     # Generate core.cmd
     print("[INFO] Generating core.cmd..", flush=True)
-    reg_core_cmd = lib_digital_ic.gen_lvds_cmd()
+    delta = str(round((float(_w2.voh.get()) - float(_w2.vol.get()))*1000))
+    com = str(round((float(_w2.voh.get()) + float(_w2.vol.get())) / 2, 2))
+    reg_core_cmd = lib_digital_ic.gen_lvds_cmd(_w2.voh.get(), _w2.vol.get(), delta, com)
     # create core.cmd and write reg_core_cmd into cmd
     with open("core.cmd", "w") as f:
         f.write(reg_core_cmd)
     print("[INFO] Generating core.cmd ... done", flush=True)
     
     # Perform optimization
-    optimizeLVDS.run_with_params(model_file, float(_w2.mpd1_L), float(_w2.mpd1_H),
-                                 float(_w2.mnd1_L), float(_w2.mnd1_H),
-                                 float(_w2.pKp_L), float(_w2.pKp_H),
-                                 float(_w2.pRd_L), float(_w2.pRd_H),
-                                 float(_w2.pRs_L), float(_w2.pRs_H),
-                                 float(_w2.nKp_L), float(_w2.nKp_H),
-                                 float(_w2.nRd_L), float(_w2.nRd_H),
-                                 float(_w2.nRs_L), float(_w2.nRs_H),
-                                 float(_w2.voh) ,float(_w2.vol))
+    print("Optimizing parameters. Please wait...", flush=True)
+    optimizeLVDS.run_with_params(model_file, float(_w2.mpd1_L.get()), float(_w2.mpd1_H.get()),
+                                 float(_w2.mnd1_L.get()), float(_w2.mnd1_H.get()),
+                                 float(_w2.pKp_L.get()), float(_w2.pKp_H.get()),
+                                 float(_w2.pRd_L.get()), float(_w2.pRd_H.get()),
+                                 float(_w2.pRs_L.get()), float(_w2.pRs_H.get()),
+                                 float(_w2.nKp_L.get()), float(_w2.nKp_H.get()),
+                                 float(_w2.nRd_L.get()), float(_w2.nRd_H.get()),
+                                 float(_w2.nRs_L.get()), float(_w2.nRs_H.get()),
+                                 float(_w2.voh.get()) ,float(_w2.vol.get()))
+    
+    print("[INFO] Performing optimization ... done", flush=True)
     
     # print to result box
     with open(model_file, 'r') as f:
@@ -175,14 +179,14 @@ def submitEclBtnClicked(*args):
         return
     
     _top3.withdraw()
-    kpn = _w1.kpn.get().replace('-', '_') if '-' in _w1.kpn.get() else _w1.kpn.get()
+    kpn = _w1.kpn.get()
 
     # Generate model
     print("[INFO] Generating model ...", flush=True)
     
     # Generating model based on user's inputs
-    reg_model = lib_digital_ic.main_gen_ecl_model(pin_list=PIN_LIST, inputType=_w1.inputInterfaceOption.get(), pGND=_w1.gndPinNum.get(),
-                                                  pVCC=_w1.vccPinNum.get(), pVEE=_w1.veePinNum.get(), kpn=kpn)
+    reg_model = lib_digital_ic.main_gen_ecl_model(pin_list=PIN_LIST, inputType=_w1.inputInterfaceOption.get(), 
+                                                  pVCC=_w1.vccPinNum.get(), pGND=_w1.gndPinNum.get(), kpn=kpn)
 
     print("[INFO] Generating model ... done", flush=True)
 
@@ -194,7 +198,7 @@ def submitEclBtnClicked(*args):
 
     # Generate harness
     print("[INFO] Generating harness ...", flush=True)
-    reg_harness, numQ = lib_digital_ic.gen_ecl_harness(kpn=kpn, pin_list=PIN_LIST, vcc=_w1.vcc.get(), vee=_w1.vee.get(), vtt=_w1.vtt.get())
+    reg_harness, _ = lib_digital_ic.gen_ecl_harness(kpn=kpn, pin_list=PIN_LIST, vcc=_w1.vcc.get(), vin=_w1.vin.get(), vee=_w1.vee.get(), vtt=_w1.vtt.get())
 
     # Open fixture.cki file and write reg_harness into cki file
     with open("fixture.cki", "w") as f:
@@ -203,13 +207,15 @@ def submitEclBtnClicked(*args):
 
     # Generate core.cmd
     print("[INFO] Generating core.cmd..", flush=True)
-    reg_core_cmd = lib_digital_ic.gen_ecl_cmd(numQ)
+    delta = str(round((float(_w3.voh.get()) - float(_w3.vol.get()))*1000))
+    com = str(round((float(_w3.voh.get()) + float(_w3.vol.get())) / 2, 2))
+    reg_core_cmd = lib_digital_ic.gen_ecl_cmd(_w3.voh.get(), _w3.vol.get(), delta, com)
     # create core.cmd and write reg_core_cmd into cmd
     with open("core.cmd", "w") as f:
         f.write(reg_core_cmd)
     print("[INFO] Generating core.cmd ... done", flush=True)
     
-    print("Calibrating parameters. Please wait...", flush=True)
+    print("Optimizing parameters. Please wait...", flush=True)
     optimizeECL.run_with_params(model_file, int(_w3.rb1_L.get()), int(_w3.rb1_H.get()),
                 int(_w3.rb2_L.get()), int(_w3.rb2_H.get()),
                 float(_w3.voh.get()), float(_w3.vol.get()))
@@ -257,17 +263,15 @@ def submitCmlBtnClicked(*args):
     if not checkReqFields() or not cml_params_filled:
         messagebox.showerror("Input Error", "Please fill all the required fields.")
         return
-
-    kpn = _w1.kpn.get().replace('-', '_') if '-' in _w1.kpn.get() else _w1.kpn.get()
-
-    # Generate 1 ohm resistor network for similar pins
-    shorts = lib_digital_ic.short_similar_pins(pin_list=PIN_LIST, resistance=1)
     
+    _top4.withdraw()
+
+    kpn = _w1.kpn.get()
+
     # Generate model
     print("[INFO] Generating model ...", flush=True)
-    reg_model = lib_digital_ic.main_gen_cml_model(pin_list=PIN_LIST, inputType=_w1.inputInterfaceOption.get(), pGND=_w1.gndPinNum.get(),
-                                                   pVCC=_w1.vccPinNum.get(), pVEE=_w1.veePinNum.get(),
-                                                   res_shorts=shorts,kpn=kpn) 
+    reg_model = lib_digital_ic.main_gen_cml_model(pin_list=PIN_LIST, inputType=_w1.inputInterfaceOption.get(),
+                                                  pVCC=_w1.vccPinNum.get(), pGND=_w1.gndPinNum.get(), kpn=kpn) 
 
     print("[INFO] Generating model ... done", flush=True)
 
@@ -290,7 +294,9 @@ def submitCmlBtnClicked(*args):
 
     # Generate core.cmd
     print("[INFO] Generating core.cmd..", flush=True)
-    reg_core_cmd = lib_digital_ic.gen_cml_cmd()
+    delta = str(round((float(_w4.voh.get()) - float(_w4.vol.get()))*1000))
+    com = str(round((float(_w4.voh.get()) + float(_w4.vol.get())) / 2, 2))
+    reg_core_cmd = lib_digital_ic.gen_cml_cmd(_w4.voh.get(), _w4.vol.get(), delta, com)
     
     
     # create core.cmd and write reg_core_cmd into cmd
@@ -298,7 +304,7 @@ def submitCmlBtnClicked(*args):
         f.write(reg_core_cmd)
     print("[INFO] Generating core.cmd ... done", flush=True)
     
-    print("Calibrating parameters. Please wait...", flush=True)
+    print("Optimizing parameters. Please wait...", flush=True)
     optimizeCML.run_with_params(model_file, int(_w4.rb1_L.get()), int(_w4.rb1_H.get()),
                                 int(_w4.rb2_L.get()), int(_w4.rb2_H.get()),
                                 int(_w4.rb3_L.get()), int(_w4.rb3_H.get()),
@@ -363,31 +369,11 @@ def loadPinBtnClicked(*args):
             clrList()
             _w1.pinNum.set('''Number of Pins : '''+str(pin_count)) 
 
-            # Attempt to auto detect pins
-            # Reset entry boxes
-            # _w1.gndPinNum.set("")
-            # _w1.vccPinNum.set("")
-            # _w1.veePinNum.set("")
-            # _w1.vbbPinNum.set("")
-            # _w1.inselPinNum.set("")
-            # _w1.refPinNum.set("")
-            # _w1.vtrPinNum.set("")
             for pin in PIN_LIST:
                 if not _w1.vccPinNum.get() and "vcc" in pin[1].lower():
                     _w1.vccPinNum.set(pin[0])
-                elif not _w1.gndPinNum.get() and "gnd" in pin[1].lower():
+                elif not _w1.gndPinNum.get() and ("gnd" in pin[1].lower() or "vee" in pin[1].lower()):
                     _w1.gndPinNum.set(pin[0])
-                elif not _w1.veePinNum.get() and "vee" in pin[1].lower():
-                    _w1.veePinNum.set(pin[0])
-                elif not _w1.inselPinNum.get() and "in_sel" in pin[1].lower():
-                    _w1.inselPinNum.set(pin[0])
-                elif not _w1.refPinNum.get() and "ref" in pin[1].lower():
-                    _w1.refPinNum.set(pin[0])
-                elif not _w1.vbbPinNum.get() and "vbb" in pin[1].lower():
-                    _w1.vbbPinNum.set(pin[0])
-                elif not _w1.vtrPinNum.get() and "vt" in pin[1].lower():
-                    _w1.vtrPinNum.set(pin[0])
-
         else:
             messagebox.showerror("Input Error", "Either Input Pin Information is empty or first line in the box is empty.")
             
@@ -427,15 +413,9 @@ def resetBtnClicked(*args):
 def clearPinInfo():
     _w1.vccPinEntry.delete(0, tk.END)
     _w1.gndPinEntry.delete(0, tk.END)
-    _w1.veePinEntry.delete(0, tk.END)
-    _w1.vbbPinEntry.delete(0, tk.END)
-    _w1.inselPinEntry.delete(0, tk.END)
-    _w1.refPinEntry.delete(0, tk.END)
-    _w1.vtrPinEntry.delete(0, tk.END)
     _w1.kpn.set('')
     _w1.vcc.set('')
     _w1.vpos.set('')
-    _w1.vneg.set('')
     _w1.vee.set('')
     _w1.vtt.set('')
 

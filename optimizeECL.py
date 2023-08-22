@@ -17,7 +17,7 @@ def optimizeVOH(filename, bounds, VOH):
         bounds_transformer=SequentialDomainReductionTransformer()
     )
 
-    utility = UtilityFunction(kind="ucb", kappa=5, kappa_decay=0.95, kappa_decay_delay=10)
+    utility = UtilityFunction(kind="ucb", kappa=5)
 
     for _ in range(25):
         next_point = optimizer.suggest(utility)
@@ -38,7 +38,7 @@ def optimizeVOL(filename, bounds, VOL):
         bounds_transformer=SequentialDomainReductionTransformer()
     )
 
-    utility = UtilityFunction(kind="ucb", kappa=5, kappa_decay=0.95, kappa_decay_delay=10)
+    utility = UtilityFunction(kind="ucb", kappa=5)
 
     for _ in range(25):
         next_point = optimizer.suggest(utility)
