@@ -18,31 +18,44 @@ import re
 # Max number of pins in a group to be shorted (ignore groups with more pins)
 MAX_PIN_COUNT = 50
 
+
+# ---- NO OUTPUT ----
+def main_gen_no_output_model(pin_list, inputText, inputSubckts, pVCC, pGND, kpn):
+    res = "*\n"
+    call_pin_list = [str(i+1) for i in range(len(pin_list))]
+    res += ".subckt '"+kpn+"' "+" ".join(call_pin_list)+"\n"
+    res += "*\n* Model for "+kpn+" goes here\n"
+    res += "* Input Interface\n"
+    res += inputText
+    res += "*\n"
+    res += ".ends\n"
+    for subckt in inputSubckts:
+        res += gen_hsd_inp_subckt(kpn, subckt, pVCC, pGND)
+    return res
+
 # ---- LVDS MODEL FUNCTIONS ----
-def main_gen_lvds_model(pin_list, inputType, pVCC, pGND, kpn):
-    res = gen_lvds_model(kpn, pin_list, inputType, pVCC, pGND)
+def main_gen_lvds_model(pin_list, inputText, inputSubckts, pVCC, pGND, kpn):
+    res = gen_lvds_model(kpn, pin_list, inputText, pVCC, pGND)
     res += gen_lvds_clamp_diode(pin_list, pVCC, pGND)
     res += ".ends\n"
     res += "*******************************************************************\n"
     res += "********************** SUB-CIRCUIT ********************************\n"
     res += "*******************************************************************\n\n"
-    if inputType != "LVDS":
-        res += gen_hsd_inp_subckt(kpn, inputType, pVCC, pGND)
+    for subckt in inputSubckts:
+        res += gen_hsd_inp_subckt(kpn, subckt, pVCC, pGND)
     res += gen_lvds_subckt(kpn)
     return res
 
-def gen_lvds_model(kpn, pin_list, inputType, pVCC, pGND):
+def gen_lvds_model(kpn, pin_list, inputText, pVCC, pGND):
     '''Function to generate LVDS model'''
     reg_model = ""
 
     # generate pin numbers separated by space
-    call_pin_list = []
-    for pin_index in range(len(pin_list)):
-        call_pin_list.append(str(pin_index+1))
+    call_pin_list = [str(i+1) for i in range(len(pin_list))]
     
     reg_model += "* \n"
     reg_model += ".subckt '"+kpn+"' "+" ".join(call_pin_list)+"\n" 
-    reg_model += get_lvds_model_configurations(kpn, pin_list, inputType, pVCC, pGND)
+    reg_model += get_lvds_model_configurations(kpn, pin_list, inputText, pVCC, pGND)
     reg_model += "* \n"
 
     # Generate 1 ohm resistor network for similar pins
@@ -50,19 +63,20 @@ def gen_lvds_model(kpn, pin_list, inputType, pVCC, pGND):
     reg_model += "*\n"
     return reg_model
 
-def get_lvds_model_configurations(kpn, pin_list, inputType, pVCC, pGND):
+def get_lvds_model_configurations(kpn, pin_list, inputText, pVCC, pGND):
     '''Function returns lvds model configuration'''
     gen_lvds_model_config = f"*\n* Model for {kpn} goes here\n"
 
     gen_lvds_model_config += "* RCSS placed to match supply current\n"
     gen_lvds_model_config += f"RCSS {pVCC} {pGND} 39.22\n*\n"
     
-    inp, outp = gen_hsd_io_interfaces(kpn, pin_list, inputType, outputType="LVDS", pVCC=pVCC, pVEE=pGND)
-    gen_lvds_model_config += inp + "*\n" + outp
+    outp = gen_hsd_outp_interface(kpn, pin_list, outputType="LVDS", pVCC=pVCC, pVEE=pGND)
+    gen_lvds_model_config += "* Input Interface\n"
+    gen_lvds_model_config += inputText + "*\n" + outp
     gen_lvds_model_config += "*\n"
     return gen_lvds_model_config
 
-def gen_lvds_input_pins(pin_list):
+def gen_lvds_input_pins(pin_list, offset):
     # Input pin setup 
     input_pin_p = []
     input_pin_n = []
@@ -78,14 +92,13 @@ def gen_lvds_input_pins(pin_list):
     
     # LVDS input stage
     # input terminators
-    rTermination = ""
-    if rTermination and len(input_pin_p) == len(input_pin_n):
-        inText = "* Input terminations\n"
-        for count in range(len(input_pin_p)):
-            inText += f"RIN{count} {input_pin_p[count]} {input_pin_n[count]} {rTermination}\n"
+    if len(input_pin_p) == len(input_pin_n):
+        inText = ""
+        for i in range(len(input_pin_p)):
+            inText += f"RIN{i+offset} {input_pin_p[i]} {input_pin_n[i]} 100\n"
         return inText
     else: 
-        print("Either Input P pin count and Input N pin count are not the same OR no input for resistor termination value\n")
+        print("Input P pin count and Input N pin count are not the same\n")
         return ""
 
 def gen_lvds_output_pins(kpn, pin_list, pVCC, pVEE):
@@ -269,29 +282,27 @@ def gen_lvds_cmd(DOUTP, DOUTN, delta, com):
 # ---- END OF LVDS FUNCTIONS ----
 
 # ---- START OF ECL FUNCTIONS ----
-def main_gen_ecl_model(pin_list, inputType, pVCC, pGND, kpn):
-    res = gen_ecl_model(kpn, pin_list, inputType, pVCC, pGND)
+def main_gen_ecl_model(pin_list, inputText, inputSubckts, pVCC, pGND, kpn):
+    res = gen_ecl_model(kpn, pin_list, inputText, pVCC, pGND)
     res += gen_ecl_mcl(pVCC, pGND)
     res += ".ends\n"
     res += "*******************************************************************\n"
     res += "********************** SUB-CIRCUIT ********************************\n"
     res += "*******************************************************************\n\n"
-    if inputType != "LVDS":
-        res += gen_hsd_inp_subckt(kpn, inputType, pVCC, pGND)
+    for subckt in inputSubckts:
+        res += gen_hsd_inp_subckt(kpn, subckt, pVCC, pGND)
     res += gen_ecl_outp_subckt(kpn)
     return res
 
-def gen_ecl_model(kpn, pin_list, inputType, pVCC, pGND):
+def gen_ecl_model(kpn, pin_list, inputText, pVCC, pGND):
     '''Function to generate ECL model'''
     reg_model = ""
 
-    call_pin_list = []
-    for pin_index in range(len(pin_list)):
-        call_pin_list.append(str(pin_index+1))
+    call_pin_list = [str(i+1) for i in range(len(pin_list))]
 
     reg_model += "* \n"
     reg_model += ".subckt '"+kpn+"' "+" ".join(call_pin_list)+"\n" 
-    reg_model += get_ecl_model_configurations(kpn, pin_list, inputType, pVCC, pGND)
+    reg_model += get_ecl_model_configurations(kpn, pin_list, inputText, pVCC, pGND)
     reg_model += "* \n"
 
     # Generate 1 ohm resistor network for similar pins
@@ -300,16 +311,17 @@ def gen_ecl_model(kpn, pin_list, inputType, pVCC, pGND):
     reg_model+= "*\n"
     return reg_model
 
-def get_ecl_model_configurations(kpn, pin_list, inputType, pVCC, pGND):
+def get_ecl_model_configurations(kpn, pin_list, inputText, pVCC, pGND):
     '''Function returns ecl model configuration'''
     en_ecl_model_config = "*\n"
     en_ecl_model_config += "* Model for "+kpn+" goes here\n"
-    inp, outp = gen_hsd_io_interfaces(kpn, pin_list, inputType, outputType="ECL", pVCC=pVCC, pVEE=pGND)
-    en_ecl_model_config += inp + '*\n' + outp
+    outp = gen_hsd_outp_interface(kpn, pin_list, outputType="ECL", pVCC=pVCC, pVEE=pGND)
+    en_ecl_model_config += "* Input Interface\n"
+    en_ecl_model_config += inputText + '*\n' + outp
     return en_ecl_model_config
 
 
-def gen_ecl_input_pins(kpn, pin_list, pVCC, pVEE):
+def gen_ecl_input_pins(kpn, pin_list, pVCC, pVEE, offset):
     # Input pin setup
     input_pin_p = []
     input_pin_n = []
@@ -322,9 +334,9 @@ def gen_ecl_input_pins(kpn, pin_list, pVCC, pVEE):
 
     # ECL Input stage
     if len(input_pin_p) == len(input_pin_n):
-        inText = "* Input Interface\n"
-        for count in range(len(input_pin_p)):
-            inText += "XI"+str(count)+" "+str(input_pin_p[count])+" "+str(input_pin_n[count])+" "+pVCC+" "+pVEE+" inp_ecl_"+kpn+"\n"
+        inText = ""
+        for i in range(len(input_pin_p)):
+            inText += "XI"+str(i+offset)+" "+str(input_pin_p[i])+" "+str(input_pin_n[i])+" "+pVCC+" "+pVEE+" inp_ecl_"+kpn+"\n"
         return inText
     else: 
         print("Either Input P pin count and Input N pin count are not the same\n")
@@ -521,30 +533,28 @@ def gen_ecl_cmd(VOH, VOL, delta, com):
 # ---- END OF ECL FUNCTIONS ----
 
 # ---- START OF CML FUNCTIONS ----
-def main_gen_cml_model(pin_list, inputType, pVCC, pGND, kpn):
+def main_gen_cml_model(pin_list, inputText, inputSubckts, pVCC, pGND, kpn):
     res = ""
-    res += gen_cml_model(kpn, pin_list, inputType, pVCC, pGND)
+    res += gen_cml_model(kpn, pin_list, inputText, pVCC, pGND)
     res += ".ends\n"
     res += "*******************************************************************\n"
     res += "********************** SUB-CIRCUIT ********************************\n"
     res += "*******************************************************************\n"
-    if inputType != "LVDS":
-        res += gen_hsd_inp_subckt(kpn, inputType, pVCC, pGND)
+    for subckt in inputSubckts:
+        res += gen_hsd_inp_subckt(kpn, subckt, pVCC, pGND)
     res += gen_cml_outp_subckt(kpn)
     return res
 
 
-def gen_cml_model(kpn, pin_list, inputType, pVCC, pGND):
+def gen_cml_model(kpn, pin_list, inputText, pVCC, pGND):
     '''Function to generate CML model'''
     reg_model = ""
 
-    call_pin_list = []
-    for pin_index in range(len(pin_list)):
-        call_pin_list.append(str(pin_index+1))
+    call_pin_list = [str(i+1) for i in range(len(pin_list))]
 
     reg_model += "* \n"
     reg_model += ".subckt '"+kpn+"' "+" ".join(call_pin_list)+"\n" 
-    reg_model += get_cml_model_configurations(kpn, pin_list, inputType, pVCC, pGND)
+    reg_model += get_cml_model_configurations(kpn, pin_list, inputText, pVCC, pGND)
     reg_model += "* \n"
 
     # Resistor shorts
@@ -554,19 +564,17 @@ def gen_cml_model(kpn, pin_list, inputType, pVCC, pGND):
     return reg_model
 
 
-def get_cml_model_configurations(kpn, pin_list, inputType, pVCC, pVEE):
+def get_cml_model_configurations(kpn, pin_list, inputText, pVCC, pVEE):
     '''Function returns cml model configuration'''
     en_cml_model_config = "*\n* Model for "+kpn+" goes here\n"
-    
-    # Input and output pin setup 
-    # TODO: Add support for multiple inputs and outputs
     
     # Pull-down resistor
     en_cml_model_config+= "* RPD added to match the supply current of 90m at 2.5V\n"
     en_cml_model_config+= "RPD "+pVCC+" "+pVEE+" 38\n"
     en_cml_model_config+= "*\n"
-    inp, outp = gen_hsd_io_interfaces(kpn, pin_list, inputType, outputType="CML", pVCC=pVCC, pVEE=pVEE)
-    en_cml_model_config += inp + outp
+    outp = gen_hsd_outp_interface(kpn, pin_list, outputType="CML", pVCC=pVCC, pVEE=pVEE)
+    en_cml_model_config += "* Input Interface\n"
+    en_cml_model_config += inputText + outp
     # Connect exposed pad to VEE
     en_cml_model_config+= "* Connecting Exposed Pad to VEE\n"
     en_cml_model_config+= "RVE "+pVEE+" %PMH1 1\n"
@@ -575,7 +583,7 @@ def get_cml_model_configurations(kpn, pin_list, inputType, pVCC, pVEE):
     return en_cml_model_config
 
 
-def gen_cml_input_pins(kpn, pin_list, pVCC, pVEE):
+def gen_cml_input_pins(kpn, pin_list, pVCC, pVEE, offset):
     # Input pin setup
     input_pin_p = []
     input_pin_n = []
@@ -590,9 +598,9 @@ def gen_cml_input_pins(kpn, pin_list, pVCC, pVEE):
             vt.append(pin[0])
 
     if len(input_pin_p) == len(input_pin_n):
-        inText = "* Input Interface\n"
-        for count in range(len(input_pin_p)):
-            inText += "XI"+str(count)+" "+str(input_pin_p[count])+" "+str(input_pin_n[count])+" "+str(vt[count])+" "+str(vt[count])+" "+pVCC+" "+pVEE+" diff_inp_"+kpn+"\n"
+        inText = ""
+        for i in range(len(input_pin_p)):
+            inText += "XI"+str(i+offset)+" "+str(input_pin_p[i])+" "+str(input_pin_n[i])+" "+str(vt[i])+" "+str(vt[i])+" "+pVCC+" "+pVEE+" cml_inp_"+kpn+"\n"
         return inText
     else: 
         raise Exception("Either Input P pin count and Input N pin count are not the same\n")
@@ -648,7 +656,7 @@ R4 %b2 %gnd 100
     return cml_subckt
 
 def gen_cml_inp_subckt(kpn):
-    cml_subckt = ".subckt diff_inp_"+kpn+""" %in %inb %vtin %vtinb %vcc %gnd
+    cml_subckt = ".subckt cml_inp_"+kpn+""" %in %inb %vtin %vtinb %vcc %gnd
 **********************
 *  CML input stage  *
 **********************
@@ -757,27 +765,27 @@ def gen_cml_cmd(VOH, VOL, delta, com):
 # ---- END OF CML FUNCTIONS ----
 
 # Supporting functions
-def gen_hsd_io_interfaces(kpn, pin_list, inputType, outputType, pVCC, pVEE=None):
-    input_pins = ""
-    output_pins = ""
-
+def gen_hsd_inp_interface(kpn, pin_list, inputType, pVCC, pVEE, pinStartNum):
     kpn = kpn.replace('-', '_') if '-' in kpn else kpn
 
     if inputType == "LVDS":
-        input_pins = gen_lvds_input_pins(pin_list)
+        return gen_lvds_input_pins(pin_list, pinStartNum)
     elif inputType == "ECL":
-        input_pins = gen_ecl_input_pins(kpn, pin_list, pVCC, pVEE)
+        return gen_ecl_input_pins(kpn, pin_list, pVCC, pVEE, pinStartNum)
     elif inputType == "CML":
-        input_pins = gen_cml_input_pins(kpn, pin_list, pVCC, pVEE)
+        return gen_cml_input_pins(kpn, pin_list, pVCC, pVEE, pinStartNum)
+    else: return ""
+
+def gen_hsd_outp_interface(kpn, pin_list, outputType, pVCC, pVEE=None):
+    kpn = kpn.replace('-', '_') if '-' in kpn else kpn
 
     if outputType == "LVDS":
-        output_pins = gen_lvds_output_pins(kpn, pin_list, pVCC, pVEE)
+        return gen_lvds_output_pins(kpn, pin_list, pVCC, pVEE)
     elif outputType == "ECL":
-        output_pins = gen_ecl_output_pins(kpn, pin_list, pVCC, pVEE)
+        return gen_ecl_output_pins(kpn, pin_list, pVCC, pVEE)
     elif outputType == "CML":
-        output_pins = gen_cml_output_pins(kpn, pin_list, pVCC, pVEE)
+        return gen_cml_output_pins(kpn, pin_list, pVCC, pVEE)
 
-    return input_pins, output_pins
 
 def gen_hsd_inp_subckt(kpn, inputType, pVCC=None, pVEE=None):
     kpn = kpn.replace('-', '_') if '-' in kpn else kpn

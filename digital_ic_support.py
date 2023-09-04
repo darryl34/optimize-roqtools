@@ -53,6 +53,39 @@ def copyBtnClicked(*args):
     sys.stdout.flush()
 
 
+def inputInterfaceButtonClicked(*args):
+    print('digital_ic_support.inputInterfaceButtonClicked')
+    if not checkReqFields():
+        messagebox.showerror("Input Error", "Please fill all the required fields.")
+        return
+    
+    try:
+        pinStartNum = len(_w1.resultBox.get("1.0", tk.END).splitlines()) - 1 # account for newline
+        inp = lib_digital_ic.gen_hsd_inp_interface(kpn=_w1.kpn.get(), pin_list=PIN_LIST, 
+                                                    inputType=_w1.inputInterfaceOption.get(),
+                                                    pVCC=_w1.vccPinNum.get(), pVEE=_w1.gndPinNum.get(),
+                                                    pinStartNum=pinStartNum)
+        _w1.resultBox.insert(tk.END, inp)
+    except Exception as e:
+        print("Error in updating Listbox: ",e)
+
+
+def resultBoxClearBtnClicked(*args):
+    _w1.resultBox.delete("1.0", tk.END)
+
+def createNoneBtnClicked(*args):
+    kpn = _w1.kpn.get()
+    print("[INFO] Generating model ...", flush=True)
+    reg_model = lib_digital_ic.main_gen_no_output_model(pin_list=PIN_LIST, inputText=_w1.resultBox.get("1.0", tk.END),
+                    inputSubckts=getInputInterfaces(), pVCC=_w1.vccPinNum.get(), pGND=_w1.gndPinNum.get(), kpn=kpn)
+
+    print("[INFO] Generating model ... done", flush=True)
+
+    _w1.Scrolledtext1.configure(state='normal')
+    _w1.Scrolledtext1.insert(tk.INSERT, reg_model)
+    _w1.Scrolledtext1.configure(state='disabled')
+    print("[INFO] No output modelling completed", flush=True)
+
 def createLvdsBtnClicked(*args):
     global _top2, _w2
     _top2 = tk.Toplevel(root)
@@ -87,8 +120,9 @@ def submitLvdsBtnClicked(*args):
     
     # Generate model
     print("[INFO] Generating model ...", flush=True)
-    reg_model = lib_digital_ic.main_gen_lvds_model(pin_list=PIN_LIST, inputType=_w1.inputInterfaceOption.get(),
-                    pVCC=_w1.vccPinNum.get(), pGND=_w1.gndPinNum.get(), kpn=kpn)
+    reg_model = lib_digital_ic.main_gen_lvds_model(pin_list=PIN_LIST, inputText=_w1.resultBox.get("1.0", tk.END),
+                                                   inputSubckts=getInputInterfaces(),
+                                                pVCC=_w1.vccPinNum.get(), pGND=_w1.gndPinNum.get(), kpn=kpn)
 
     print("[INFO] Generating model ... done", flush=True)
 
@@ -185,7 +219,8 @@ def submitEclBtnClicked(*args):
     print("[INFO] Generating model ...", flush=True)
     
     # Generating model based on user's inputs
-    reg_model = lib_digital_ic.main_gen_ecl_model(pin_list=PIN_LIST, inputType=_w1.inputInterfaceOption.get(), 
+    reg_model = lib_digital_ic.main_gen_ecl_model(pin_list=PIN_LIST, inputText=_w1.resultBox.get("1.0", tk.END), 
+                                                  inputSubckts=getInputInterfaces(),
                                                   pVCC=_w1.vccPinNum.get(), pGND=_w1.gndPinNum.get(), kpn=kpn)
 
     print("[INFO] Generating model ... done", flush=True)
@@ -270,7 +305,8 @@ def submitCmlBtnClicked(*args):
 
     # Generate model
     print("[INFO] Generating model ...", flush=True)
-    reg_model = lib_digital_ic.main_gen_cml_model(pin_list=PIN_LIST, inputType=_w1.inputInterfaceOption.get(),
+    reg_model = lib_digital_ic.main_gen_cml_model(pin_list=PIN_LIST, inputText=_w1.resultBox.get("1.0", tk.END),
+                                                  inputSubckts=getInputInterfaces(),
                                                   pVCC=_w1.vccPinNum.get(), pGND=_w1.gndPinNum.get(), kpn=kpn) 
 
     print("[INFO] Generating model ... done", flush=True)
@@ -369,11 +405,15 @@ def loadPinBtnClicked(*args):
             clrList()
             _w1.pinNum.set('''Number of Pins : '''+str(pin_count)) 
 
+            vccPinSet = False
+            gndPinSet = False
             for pin in PIN_LIST:
-                if not _w1.vccPinNum.get() and "vcc" in pin[1].lower():
+                if not vccPinSet and "vcc" in pin[1].lower():
                     _w1.vccPinNum.set(pin[0])
-                elif not _w1.gndPinNum.get() and ("gnd" in pin[1].lower() or "vee" in pin[1].lower()):
+                    vccPinSet = True
+                elif not gndPinSet and ("gnd" in pin[1].lower() or "vee" in pin[1].lower()):
                     _w1.gndPinNum.set(pin[0])
+                    gndPinSet = True
         else:
             messagebox.showerror("Input Error", "Either Input Pin Information is empty or first line in the box is empty.")
             
@@ -425,7 +465,15 @@ def clearScrollText():
     _w1.Scrolledtext1.configure(state='disabled')
 
 def checkReqFields():
-    return _w1.vccPinNum.get() and _w1.gndPinNum.get() and _w1.kpn.get() and _w1.vcc.get()
+    return _w1.vccPinNum.get() and _w1.gndPinNum.get() and _w1.kpn.get()
+
+def getInputInterfaces():
+    lst = []
+    txt = _w1.resultBox.get("1.0", tk.END)
+    if "RIN" in txt: lst.append("LVDS")
+    if "ecl" in txt: lst.append("ECL")
+    if "cml" in txt: lst.append("CML")
+    return lst
 
 if __name__ == '__main__':
     digital_ic_gui.start()

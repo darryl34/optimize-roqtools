@@ -69,6 +69,12 @@ class GUIStyles:
                                         highlightbackground="#d9d9d9",
                                         highlightcolor="black",
                                         relief='groove')
+        window_to_style.style.configure('checkbutton.TCheckbutton',
+                                        background="#d9d9d9",
+                                        foreground="#000000",
+                                        highlightbackground="#d9d9d9",
+                                        highlightcolor="black",
+                                        takefocus=False)
 
 
 class Toplevel1:
@@ -108,12 +114,15 @@ class Toplevel1:
         self.pinNum = tk.StringVar()
         self.gndPinNum = tk.StringVar()
         self.vccPinNum = tk.StringVar()
+        self.inputInterfaceOption = tk.StringVar()
         self.kpn = tk.StringVar()
         self.vcc = tk.StringVar()
         self.vin = tk.StringVar()
         self.vee = tk.StringVar()
         self.vtt = tk.StringVar()
-        self.inputInterfaceOption = tk.StringVar()
+        self.lvdsSubckt = tk.IntVar()
+        self.eclSubckt = tk.IntVar()
+        self.cmlSubckt = tk.IntVar()
         
 
         self.Labelframe1 = ttk.LabelFrame(self.top, style='labelFrame.TLabelframe')
@@ -184,8 +193,44 @@ class Toplevel1:
         self.kpnEntry = ttk.Entry(self.Labelframe2, style='entry.TEntry', textvariable=self.kpn)
         self.kpnEntry.place(relx=0.78, rely=0.035, height=25, relwidth=0.173, bordermode='ignore')
 
+        self.Label = ttk.Label(self.Labelframe2, style='label.TLabel')
+        self.Label.place(relx=0.30, rely=0.15, height=30, width=200, bordermode='ignore')
+        self.Label.configure(text='''Input Interface''')
+
+        self.inputInterface = ttk.Combobox(self.Labelframe2, textvariable=self.inputInterfaceOption, state='readonly', takefocus=False)
+        self.inputInterface.place(relx=0.30, rely=0.20, relheight=0.03, relwidth=0.20, bordermode='ignore')
+        self.inputInterface["values"] = ('NONE', 'LVDS', 'ECL', 'CML')
+        self.inputInterface.current(0)
+        self.inputInterface.bind('<<ComboboxSelected>>', self.Labelframe2.focus())
+
+        self.inputInterfaceButton = ttk.Button(self.Labelframe2, style='button.TButton', takefocus=False)
+        self.inputInterfaceButton.place(relx=0.54, rely=0.19, height=34, width=107, bordermode='ignore')
+        self.inputInterfaceButton.configure(text='''Generate''')
+        self.inputInterfaceButton.bind('<Button-1>', lambda e:digital_ic_support.inputInterfaceButtonClicked(e))
+
+        self.resultLabel = ttk.Label(self.Labelframe2, style='label.TLabel')
+        self.resultLabel.place(relx=0.30, rely=0.25, height=30, width=200, bordermode='ignore')
+        self.resultLabel.configure(text='''Result box''')
+
+        self.resultBox = tk.Text(self.Labelframe2)
+        self.resultBox.place(relx=0.30, rely=0.29, relheight=0.12, relwidth=0.47, bordermode='ignore')
+        self.resultBox.configure(background="white")
+        self.resultBox.configure(borderwidth="2")
+        self.resultBox.configure(font="TkTextFont")
+        self.resultBox.configure(foreground="black")
+        self.resultBox.configure(highlightbackground="#d9d9d9")
+        self.resultBox.configure(highlightcolor="black")
+        self.resultBox.configure(insertbackground="black")
+        self.resultBox.configure(selectbackground="#c4c4c4")
+        self.resultBox.configure(selectforeground="black")
+
+        self.resultBoxSaveBtn = ttk.Button(self.Labelframe2, style='button.TButton', takefocus=False)
+        self.resultBoxSaveBtn.place(relx=0.8, rely=0.33, height=34, width=107, bordermode='ignore')
+        self.resultBoxSaveBtn.configure(text='''Clear''')
+        self.resultBoxSaveBtn.bind('<Button-1>', lambda e:digital_ic_support.resultBoxClearBtnClicked(e))
+
         self.Labelframe3 = ttk.LabelFrame(self.top, style='Labelframe.TLabelframe')
-        self.Labelframe3.place(relx=0.33, rely=0.4, relheight=0.5, relwidth=0.34)
+        self.Labelframe3.place(relx=0.33, rely=0.45, relheight=0.45, relwidth=0.34)
         self.Labelframe3.configure(text='''Harness Configuration''')
 
         self.vccLabel = ttk.Label(self.Labelframe3, style='label.TLabel')
@@ -212,36 +257,32 @@ class Toplevel1:
         self.vttEntry = ttk.Entry(self.Labelframe3, style='entry.TEntry', textvariable=self.vtt)
         self.vttEntry.place(relx=0.30, rely=0.40, height=25, relwidth=0.173, bordermode='ignore')
 
-        self.Label = ttk.Label(self.Labelframe3, style='label.TLabel')
-        self.Label.place(relx=0.10, rely=0.5, height=30, width=200, bordermode='ignore')
-        self.Label.configure(text='''Input Interface''')
-
-        self.inputInterface = ttk.Combobox(self.Labelframe3, textvariable=self.inputInterfaceOption, state='readonly', takefocus=False)
-        self.inputInterface.place(relx=0.10, rely=0.57, relheight=0.06, relwidth=0.35, bordermode='ignore')
-        self.inputInterface["values"] = ('LVDS', 'ECL', 'CML')
-        self.inputInterface.current(0)
-        self.inputInterface.bind('<<ComboboxSelected>>', self.Labelframe3.focus())
+        self.createBtn = ttk.Button(self.Labelframe3, style='button.TButton', takefocus=False)
+        self.createBtn.place(relx=0.65, rely=0.1, height=34, width=107, bordermode='ignore')
+        self.createBtn.configure(text='''Generate None''')
+        self.createBtn.bind('<ButtonRelease-1>', lambda e:digital_ic_support.createNoneBtnClicked(e))
+        self.createBtn.bind('<Return>', lambda e:digital_ic_support.createNoneBtnClicked(e))
 
         self.createBtn = ttk.Button(self.Labelframe3, style='button.TButton', takefocus=False)
-        self.createBtn.place(relx=0.65, rely=0.15, height=34, width=107, bordermode='ignore')
+        self.createBtn.place(relx=0.65, rely=0.23, height=34, width=107, bordermode='ignore')
         self.createBtn.configure(text='''Generate LVDS''')
         self.createBtn.bind('<ButtonRelease-1>', lambda e:digital_ic_support.createLvdsBtnClicked(e))
         self.createBtn.bind('<Return>', lambda e:digital_ic_support.createLvdsBtnClicked(e))
 
         self.createBtn = ttk.Button(self.Labelframe3, style='button.TButton', takefocus=False)
-        self.createBtn.place(relx=0.65, rely=0.27, height=34, width=107, bordermode='ignore')
+        self.createBtn.place(relx=0.65, rely=0.36, height=34, width=107, bordermode='ignore')
         self.createBtn.configure(text='''Generate ECL''')
         self.createBtn.bind('<ButtonRelease-1>', lambda e:digital_ic_support.createEclBtnClicked(e))
         self.createBtn.bind('<Return>', lambda e:digital_ic_support.createEclBtnClicked(e))
 
         self.createBtn = ttk.Button(self.Labelframe3, style='button.TButton', takefocus=False)
-        self.createBtn.place(relx=0.65, rely=0.39, height=34, width=107, bordermode='ignore')
+        self.createBtn.place(relx=0.65, rely=0.49, height=34, width=107, bordermode='ignore')
         self.createBtn.configure(text='''Generate CML''')
         self.createBtn.bind('<ButtonRelease-1>', lambda e:digital_ic_support.createCmlBtnClicked(e))
         self.createBtn.bind('<Return>', lambda e:digital_ic_support.createCmlBtnClicked(e))
 
         self.resetBtn = ttk.Button(self.Labelframe3, style='button.TButton', takefocus=False)
-        self.resetBtn.place(relx=0.65, rely=0.51, height=34, width=107, bordermode='ignore')
+        self.resetBtn.place(relx=0.6, rely=0.66, height=34, width=145, bordermode='ignore')
         self.resetBtn.configure(text='''Reset Settings''')
         self.resetBtn.bind('<Button-1>',lambda e:digital_ic_support.resetBtnClicked(e))
         self.resetBtn.bind('<Return>', lambda e:digital_ic_support.resetBtnClicked(e))

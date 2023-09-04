@@ -21,12 +21,18 @@ def optimizeDelta(filename, bounds, VOH, VOL):
     # define acquisition function
     utility = UtilityFunction(kind="ucb", kappa=5)
 
-    for _ in range(30):
+    for _ in range(25):
         next_point = optimizer.suggest(utility)
         lvdsDict = runLVDS(filename, next_point)
         
         # calculate output errors
-        target = penaltyFunc(lvdsDict["Output delta"], VOH-VOL, -20)
+        # Force both W to be almost equal to each other
+        # Cant be exactly equal because many decimal places are used
+        if abs(next_point["MPD1_W"] - next_point["MND1_W"]) > 1e-2:
+            print(next_point["MPD1_W"] - next_point["MND1_W"])
+            target = -50
+        else:
+            target = penaltyFunc(lvdsDict["Output delta"], VOH-VOL, -20)
         optimizer.register(next_point, target)
 
     print(optimizer.max)
@@ -45,13 +51,18 @@ def optimizeV(filename, bounds, VOH, VOL):
     # define acquisition function
     utility = UtilityFunction(kind="ucb", kappa=5)
 
-    for _ in range(30):
+    for _ in range(25):
         next_point = optimizer.suggest(utility)
         lvdsDict = runLVDS(filename, next_point)
         
         # calculate output errors
-        target = penaltyFunc(lvdsDict["Output DOUTP"], VOH, -20)
-        target += penaltyFunc(lvdsDict["Output DOUTN"], VOL, -20)
+
+        # Commented out because it doesnt produce good results
+        # Increasing threshold might help but might as well not have a threshold
+        # if abs(next_point["P_RD"] - next_point["P_RS"]) > 3 or abs(next_point["N_RD"] - next_point["N_RS"]) > 3:
+        #     target = -50
+        # else:
+        target = penaltyFunc(lvdsDict["Output DOUTP"], VOH, -20) + penaltyFunc(lvdsDict["Output DOUTN"], VOL, -20)
         optimizer.register(next_point, target)
 
     print(optimizer.max)
@@ -118,7 +129,7 @@ if __name__ == "__main__":
                'N_RD': (1,50),
                'N_RS': (1,50)}
     
-    idealValues = {"VOH": 1.41, 
-                   "VOL": 1.05}
-    os.chdir("1822-2408")
-    run("1822-2408.inc", boundsDelta, boundsV, idealValues)
+    idealValues = {"VOH": 1.6, 
+                   "VOL": 1.15}
+    os.chdir("Samples/HSD/LVDS/1813-3032")
+    run("1813-3032.inc", boundsDelta, boundsV, idealValues)
