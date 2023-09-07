@@ -1,9 +1,32 @@
-import os
-from bayes_opt import BayesianOptimization, SequentialDomainReductionTransformer, UtilityFunction
+#! /usr/bin/env python3
+# -*- coding: utf-8 -*-
+# *****************************************************************************
+# Name:     optimizeLVDS.py
+# Purpose:  Optimize LVDS model parameters
+# Script version: 1.0
+# Python version: Python 3.8.10
+# Compatible OS: Windows 10
+# Requirements: Hpspice, bayesian-optimization
+# Developer (v1.0): Darryl Ng
+# Notes: Bayesian Optimization GitHub repo:
+#       https://github.com/bayesian-optimization/BayesianOptimization
+#       The example notebooks provide a good overview of the model functions
+#       and how to use the library.
+#
+# Version History:
+# - v1.0 (2023-09-05) - First version
+# *****************************************************************************
+#
+# Future Improvements:
+# * 1. Experiment with tuning parameters with the same values
+# * 2. Refine bounds
+#
 
+
+from bayes_opt import BayesianOptimization, SequentialDomainReductionTransformer, UtilityFunction
 from util import editLVDSNetlist, extractLVDS, penaltyFunc, runCmd
 
-
+# Run core.cmd, returns a dictionary of extracted values
 def runLVDS(filename, params):
     editLVDSNetlist(filename, **params)
     data = runCmd().splitlines()[1:]
@@ -71,8 +94,22 @@ def optimizeV(filename, bounds, VOH, VOL):
 
 
 def run(filename, boundsDelta, boundsV, idealValues):
+    """
+    Optimize the parameters of a model file by running a calibration process
+    on Delta and VOH/VOL outputs sequentially. The best result is then selected and
+    the model file is edited to reflect the optimized parameters.
+
+    Args:
+        filename (str): The name of the model file.
+        boundsDelta (dict): A dictionary specifying the bounds for the Delta parameters.
+        boundsV (dict): A dictionary specifying the bounds for the V parameters.
+        idealValues (dict): A dictionary specifying the ideal VOH and VOL values.
+
+    Returns:
+        None
+    """
     res = []
-    errorThreshold = -0.1  # must be < 0
+    errorThreshold = -0.1  # must be < 0 as error is negative
 
     for i in range(3):
         print("Calibrating... Iteration " + str(i+1) + "/3", end="\r", flush=True)
@@ -80,6 +117,7 @@ def run(filename, boundsDelta, boundsV, idealValues):
         v = optimizeV(filename, boundsV, **idealValues)
         curr = {'params': {**delta['params'], **v['params']}, 'target': delta['target'] + v['target']}
         res.append(curr)
+        # end optimization if target is better than threshold
         if curr['target'] > errorThreshold: break
     
     # return element with target closest to 0
@@ -90,6 +128,7 @@ def run(filename, boundsDelta, boundsV, idealValues):
     print(runCmd())
 
 
+# For GUI parameters use
 def run_with_params(filename: str, 
                     MPD1_L: float, MPD1_H: float,
                     MND1_L: float, MND1_H: float,
@@ -131,5 +170,7 @@ if __name__ == "__main__":
     
     idealValues = {"VOH": 1.6, 
                    "VOL": 1.15}
-    os.chdir("Samples/HSD/LVDS/1813-3032")
-    run("1813-3032.inc", boundsDelta, boundsV, idealValues)
+    
+    filename = "1813-3032.inc"
+    
+    run(filename, boundsDelta, boundsV, idealValues)

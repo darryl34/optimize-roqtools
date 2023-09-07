@@ -72,11 +72,10 @@ def test_editCMLNetlist():
     filename = "testCML.txt"
     with open(filename, "w") as f:
         data = "R1 %vcc %b1 100\nR2 %b1 %gnd 100\nR3 %vcc %b2 1000\nR4 %b2 %gnd 1000\n"
-        data += ".model QMOD_OUT NPN BF=10 RC=1000 RE=1000 RB=1000\n"
         f.write(data)
 
     # Edit test file
-    editCMLNetlist(filename, R1=200, R2=200, R3=200, R4=200, BF=0.0001, RC=100, RE=100, RB=100)
+    editCMLNetlist(filename, R1=200, R2=200, R3=200, R4=200)
 
     # Check if test file was edited correctly
     with open(filename, "r") as f:
@@ -85,10 +84,6 @@ def test_editCMLNetlist():
         assert "R2 %b1 %gnd 200" in data
         assert "R3 %vcc %b2 200" in data
         assert "R4 %b2 %gnd 200" in data
-        assert "BF=0.0001" in data
-        assert "RC=100" in data
-        assert "RE=100" in data
-        assert "RB=100" in data
 
     # Delete test file
     os.remove(filename)

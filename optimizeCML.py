@@ -1,6 +1,29 @@
-import os
-from bayes_opt import BayesianOptimization, SequentialDomainReductionTransformer, UtilityFunction
+#! /usr/bin/env python3
+# -*- coding: utf-8 -*-
+# *****************************************************************************
+# Name:     optimizeLVDS.py
+# Purpose:  Optimize LVDS model parameters
+# Script version: 1.0
+# Python version: Python 3.8.10
+# Compatible OS: Windows 10
+# Requirements: Hpspice, bayesian-optimization
+# Developer (v1.0): Darryl Ng
+# Notes: Bayesian Optimization GitHub repo:
+#       https://github.com/bayesian-optimization/BayesianOptimization
+#       The example notebooks provide a good overview of the model functions
+#       and how to use the library.
+# 
+# Version History:
+# - v1.0 (2023-09-05) - First version
+# *****************************************************************************
+#
+# Future Improvements:
+# * 1. Refine bounds if needed
+# * 2. Remove unnecessary parameters
+#
 
+
+from bayes_opt import BayesianOptimization, SequentialDomainReductionTransformer, UtilityFunction
 from util import extractCML, editCMLNetlist, penaltyFunc, runCmd
 
 def runCML(filename, R1=None, R2=None, R3=None, R4=None, BF=None, RC=None, RE=None, RB=None):
@@ -64,17 +87,6 @@ def run(filename, boundsVOL, boundsVOH, idealValues):
 
     Returns:
         None
-
-    Example Usage:
-        filename = "kpn.inc"
-        
-        boundsVOL = {"R1": (1, 10), "R2": (1, 10)}
-        
-        boundsVOH = {"R3": (1, 10), "R4": (1, 10)}
-        
-        idealValues = {"VOL": 0.1, "VOH": 0.9}
-
-        run(filename, boundsVOL, boundsVOH, idealValues)
     """
     res = []
 
@@ -87,7 +99,7 @@ def run(filename, boundsVOL, boundsVOH, idealValues):
     
     # return element with target closest to 0
     res.sort(key=lambda x: x['target'], reverse=True)
-    editCMLNetlist(filename, **res[0]['params'])
+    editCMLNetlist(filename, **res[0]['params'], rounded=True)
 
     print("\nParameters optimized. Running cmd...\n")
     print(runCmd())
@@ -118,4 +130,6 @@ if __name__ == "__main__":
     idealValues = {"VOH": 3.5,
                     "VOL": 2.7}
     
-    run("1822-6817.inc", boundsVOL, boundsVOH, idealValues)
+    filename = "1822-6817.inc"
+
+    run(filename, boundsVOL, boundsVOH, idealValues)

@@ -1,4 +1,27 @@
-import os
+#! /usr/bin/env python3
+# -*- coding: utf-8 -*-
+# *****************************************************************************
+# Name:     optimizeLVDS.py
+# Purpose:  Optimize LVDS model parameters
+# Script version: 1.0
+# Python version: Python 3.8.10
+# Compatible OS: Windows 10
+# Requirements: Hpspice, bayesian-optimization
+# Developer (v1.0): Darryl Ng
+# Notes: Bayesian Optimization GitHub repo:
+#       https://github.com/bayesian-optimization/BayesianOptimization
+#       The example notebooks provide a good overview of the model functions
+#       and how to use the library.
+#
+# Version History:
+# - v1.0 (2023-09-05) - First version
+# *****************************************************************************
+#
+# Future Improvements:
+# * 1. Refine bounds if needed
+#
+
+
 from bayes_opt import BayesianOptimization, SequentialDomainReductionTransformer, UtilityFunction
 from util import extractECL, editECLNetlist, penaltyFunc, runCmd
 
@@ -64,18 +87,8 @@ def run(filename, boundsVOH, boundsVOL, idealValues):
 
     Returns:
         None
-
-    Example Usage:
-        filename = "kpn.inc"
-
-        boundsVOL = {"RB1": (1, 1000)}
-
-        boundsVOH = {"RB1": (1, 1000)}
-        
-        idealValues = {"VOL": 0.1, "VOH": 0.9}
-
-        run(filename, boundsVOL, boundsVOH, idealValues)
     """
+
     res = []
     optThreshold = -1e-4
 
@@ -89,7 +102,7 @@ def run(filename, boundsVOH, boundsVOL, idealValues):
 
     # return element with target closest to 0
     res.sort(key=lambda x: x['target'], reverse=True)
-    editECLNetlist(filename, **res[0]['params'])
+    editECLNetlist(filename, **res[0]['params'], rounded=True)
 
     print("\nParameters optimized. Running cmd...\n")
     print(runCmd())
@@ -106,7 +119,8 @@ if __name__ == "__main__":
     boundsVOH = {"RB1": (1, 1000)}
     boundsVOL = {"RB2": (1, 1000)}
     
-    idealValues = {"VOH": 2.32,
-                    "VOL": 1.5}
+    idealValues = {"VOH": 3.21,
+                    "VOL": 4.105}
     
-    run("1822-2408.inc", boundsVOH, boundsVOL, idealValues)
+    filename = "1821-0424.inc"
+    run(filename, boundsVOH, boundsVOL, idealValues)
