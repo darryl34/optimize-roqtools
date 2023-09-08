@@ -232,7 +232,7 @@ def convert_sci_to_eng(number):
     if os.name == 'nt':
         number = subprocess.run(["C:/KD/cygwin-roq/bin/bash.exe", "-i", "-c", "/cygdrive/c/espy/roq/bin/hpspice.exe -s -c "+str(number)], capture_output=True, text=True).stdout
     else:
-        number = subprocess.run(["/mnt/c/KD/cygwin-roq/bin/bash.exe", "-i", "-c", "/cygdrive/c/espy/roq/bin/hpspice.exe -s -c '"+str(number)+"'\""], capture_output=True, text=True).stdout
+        number = subprocess.run(["/mnt/c/KD/cygwin-roq/bin/bash.exe", "-i", "-c", "/cygdrive/c/espy/roq/bin/hpspice.exe -s -c "+str(number)], capture_output=True, text=True).stdout
     number = number.strip()
     return number
 
