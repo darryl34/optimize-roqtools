@@ -113,6 +113,9 @@ def test_getVal():
     assert getVal("1.2m") == 1.2e-3
     assert getVal("1.2u") == 1.2e-6
     assert getVal("1.2n") == 1.2e-9
+    assert getVal("1.2a") == 1.2e-10
     assert getVal("1.2p") == 1.2e-12
-    assert getVal("1.2f") == 0
+    assert getVal("1.2f") == 1.2e-15
     assert getVal("1.2k") == 1.2e3
+    assert getVal("1.2meg") == 1.2e6
+    assert getVal("1.2g") == 1.2e9

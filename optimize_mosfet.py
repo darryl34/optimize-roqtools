@@ -91,12 +91,12 @@ def optimizeL(filename, KP, RS, RD, max_dict):
     mosDict = runMOS(filename)
     currBest = sum(penaltyFunc(i[2], 1, -20) for i in mosDict["S"])
 
-    iters = 30      # change this to increase number of iterations
+    iters = 15      # change this to increase number of iterations
     sPenalty = -20  # penalty for S, decrease this to increase penalty
     lPenalty = -10  # penalty for L
 
     for i in range(iters):
-        print("Calibrating L... Iteration: " + str(i+1) + "/10", end="\r", flush=True)
+        print("Calibrating L... Iteration: " + str(i+1) + "/" + str(iters), end="\r", flush=True)
         next_point = optimizer.suggest(utility)
         mosDict = runMOS(filename, **next_point)
         target = sum(penaltyFunc(i[2], 1, sPenalty) for i in mosDict["S"])
@@ -126,7 +126,7 @@ def optimizeL(filename, KP, RS, RD, max_dict):
 def run(filename, bounds):
     res = []
 
-    iters = 5    # change this to increase number of iterations
+    iters = 10    # change this to increase number of iterations
 
     for i in range(iters):
         print("Calibrating T and S... Iteration: " + str(i+1) + "/" + str(iters), end="\r", flush=True)
@@ -134,7 +134,7 @@ def run(filename, bounds):
     
     # sort by target value
     res.sort(key=lambda x: x["target"], reverse=True)
-    editMOSNetlist(filename, **res[0]['params'])
+    editMOSNetlist(filename, **res[0]['params'], rounded=True)
 
     optimizeL(filename, bounds["KP"], bounds["RS"], bounds["RD"], res[0])
     print("\nParameters optimized. Running cmd...\n")
@@ -144,12 +144,12 @@ def run(filename, bounds):
 if __name__ == "__main__":
 
     # Set bounds for optimization
-    bounds = {"VTO": (3.5, 3.9),
+    bounds = {"VTO": (0.7, 1),
                 "KP": (0.1, 10),
                 "LAMBDA": (1e-2, 10),
                 "RS": (1e-6, 1e-2),
                 "RD": (1e-6, 1e-4)}
 
-    filename = "1855-2675.inc"
+    filename = "1855-2187.inc"
 
     run(filename, bounds)

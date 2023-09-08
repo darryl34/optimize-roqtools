@@ -276,7 +276,7 @@ class Toplevel1:
 
         self.vttLabel = ttk.Label(self.Labelframe3, style='label.TLabel')
         self.vttLabel.place(relx=0.05, rely=0.40, height=31, width=84, bordermode='ignore')
-        self.vttLabel.configure(text='''*VTT (V):''')
+        self.vttLabel.configure(text='''VTT (V):''')
         self.vttEntry = ttk.Entry(self.Labelframe3, style='entry.TEntry', textvariable=self.vtt)
         self.vttEntry.place(relx=0.30, rely=0.40, height=25, relwidth=0.173, bordermode='ignore')
 

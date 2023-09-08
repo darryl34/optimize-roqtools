@@ -33,9 +33,7 @@ import os
 
 import digital_ic_gui
 import lib_digital_ic
-import optimizeCML
-import optimizeECL
-import optimizeLVDS
+from optimizeHSD import optimizeLVDS, optimizeECL, optimizeCML
 from util import runCmd
 
 # Global members
@@ -176,15 +174,21 @@ def submitLvdsBtnClicked(*args):
     
     # Perform optimization
     print("Optimizing parameters. Please wait...", flush=True)
-    optimizeLVDS.run_with_params(model_file, float(_w2.mpd1_L.get()), float(_w2.mpd1_H.get()),
-                                 float(_w2.mnd1_L.get()), float(_w2.mnd1_H.get()),
-                                 float(_w2.pKp_L.get()), float(_w2.pKp_H.get()),
-                                 float(_w2.pRd_L.get()), float(_w2.pRd_H.get()),
-                                 float(_w2.pRs_L.get()), float(_w2.pRs_H.get()),
-                                 float(_w2.nKp_L.get()), float(_w2.nKp_H.get()),
-                                 float(_w2.nRd_L.get()), float(_w2.nRd_H.get()),
-                                 float(_w2.nRs_L.get()), float(_w2.nRs_H.get()),
-                                 float(_w2.voh.get()) ,float(_w2.vol.get()))
+    
+    boundsDelta = {'MPD1_W': (float(_w2.mpd1_L.get()), float(_w2.mpd1_H.get())),
+                   'MND1_W': (float(_w2.mnd1_L.get()), float(_w2.mnd1_H.get()))}
+    
+    boundsV = {'P_KP': (float(_w2.pKp_L.get()), float(_w2.pKp_H.get())),
+                'P_RD': (float(_w2.pRd_L.get()), float(_w2.pRd_H.get())),
+                'P_RS': (float(_w2.pRs_L.get()), float(_w2.pRs_H.get())),
+                'N_KP': (float(_w2.nKp_L.get()), float(_w2.nKp_H.get())),
+                'N_RD': (float(_w2.nRd_L.get()), float(_w2.nRd_H.get())),
+                'N_RS': (float(_w2.nRs_L.get()), float(_w2.nRs_H.get()))}
+    
+    idealValues = {"VOH": float(_w2.voh.get()), 
+                    "VOL": float(_w2.vol.get())}
+
+    optimizeLVDS(model_file, boundsDelta, boundsV, idealValues).run()
     
     print("[INFO] Performing optimization ... done", flush=True)
     
@@ -287,9 +291,14 @@ def submitEclBtnClicked(*args):
     print("[INFO] Generating core.cmd ... done", flush=True)
     
     print("Optimizing parameters. Please wait...", flush=True)
-    optimizeECL.run_with_params(model_file, int(_w3.rb1_L.get()), int(_w3.rb1_H.get()),
-                int(_w3.rb2_L.get()), int(_w3.rb2_H.get()),
-                float(_w3.voh.get()), float(_w3.vol.get()))
+
+    boundsVOH = {"RB1": (int(_w3.rb1_L.get()), int(_w3.rb1_H.get()))}
+    boundsVOL = {"RB2": (int(_w3.rb2_L.get()), int(_w3.rb2_H.get()))}
+
+    idealValues = {"VOH": float(_w3.voh.get()),
+                    "VOL": float(_w3.vol.get())}
+
+    optimizeECL(model_file, boundsVOH, boundsVOL, idealValues).run()
     
     with open(model_file, "r") as f:
         reg_model = f.read()
@@ -370,7 +379,7 @@ def submitCmlBtnClicked(*args):
 
     # Generate harness
     print("[INFO] Generating harness ...", flush=True)
-    reg_harness = lib_digital_ic.gen_cml_harness(kpn=kpn, pin_list=PIN_LIST, vcc=_w1.vcc.get(), vee=_w1.vee.get(), vin=_w1.vpos.get())
+    reg_harness = lib_digital_ic.gen_cml_harness(kpn=kpn, pin_list=PIN_LIST, vcc=_w1.vcc.get(), vee=_w1.vee.get(), vin=_w1.vin.get())
     
 
     # Open harness.cki file and write reg_harness into ds.cki
@@ -392,11 +401,18 @@ def submitCmlBtnClicked(*args):
     print("[INFO] Generating core.cmd ... done", flush=True)
     
     print("Optimizing parameters. Please wait...", flush=True)
-    optimizeCML.run_with_params(model_file, int(_w4.rb1_L.get()), int(_w4.rb1_H.get()),
-                                int(_w4.rb2_L.get()), int(_w4.rb2_H.get()),
-                                int(_w4.rb3_L.get()), int(_w4.rb3_H.get()),
-                                int(_w4.rb4_L.get()), int(_w4.rb4_H.get()),
-                                float(_w4.voh.get()), float(_w4.vol.get()))
+
+    boundsVOL = {"RB1": (int(_w4.rb1_L.get()), int(_w4.rb1_H.get())),
+                 "RB2": (int(_w4.rb2_L.get()), int(_w4.rb2_H.get()))}
+    
+    boundsVOH = {"RB3": (int(_w4.rb3_L.get()), int(_w4.rb3_H.get())),
+                 "RB4": (int(_w4.rb4_L.get()), int(_w4.rb4_H.get()))}
+    
+    idealValues = {"VOH": float(_w4.voh.get()),
+                    "VOL": float(_w4.vol.get())}
+                
+                 
+    optimizeCML(model_file, boundsVOL, boundsVOH, idealValues).run()
 
     _w1.Scrolledtext1.configure(state='normal')
     _w1.Scrolledtext1.insert(tk.INSERT, reg_model)
@@ -521,11 +537,11 @@ def reqFieldsFilled():
     return _w1.vccPinNum.get() and _w1.gndPinNum.get() and _w1.kpn.get()
 
 def checkPinInfo():
-    if not _w1.vee.get():
-        _w1.vee.set("0")
-    if not _w1.vin.get():
-        _w1.vin.set("0")
-    return _w1.vcc.get() and _w1.vtt.get()
+    if not _w1.vee.get(): _w1.vee.set("0")
+    if not _w1.vin.get(): _w1.vin.set("0")
+    if not _w1.vtt.get(): _w1.vtt.set("0")
+    
+    return _w1.vcc.get()
 
 def getInputInterfaces():
     lst = []

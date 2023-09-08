@@ -55,6 +55,7 @@ def main_gen_lvds_model(pin_list, inputText, inputSubckts, pVCC, pGND, kpn, rawP
     for subckt in inputSubckts:
         res += gen_hsd_inp_subckt(kpn, subckt, pVCC, pGND)
     res += gen_lvds_subckt(kpn)
+    res += "* End of model for " + kpn + "\n*\n"
     return res
 
 def gen_lvds_model(kpn, pin_list, inputText, pVCC, pGND):
@@ -279,6 +280,7 @@ def main_gen_ecl_model(pin_list, inputText, inputSubckts, pVCC, pGND, kpn, rawPi
     for subckt in inputSubckts:
         res += gen_hsd_inp_subckt(kpn, subckt, pVCC, pGND)
     res += gen_ecl_outp_subckt(kpn)
+    res += "* End of model for " + kpn + "\n*\n"
     return res
 
 def gen_ecl_model(kpn, pin_list, inputText, pVCC, pGND):
@@ -502,6 +504,7 @@ def main_gen_cml_model(pin_list, inputText, inputSubckts, pVCC, pGND, kpn, rawPi
     for subckt in inputSubckts:
         res += gen_hsd_inp_subckt(kpn, subckt, pVCC, pGND)
     res += gen_cml_outp_subckt(kpn)
+    res += "* End of model for " + kpn + "\n*\n"
     return res
 
 
@@ -734,16 +737,6 @@ def gen_hsd_inp_subckt(kpn, inputType, pVCC=None, pVEE=None):
     elif inputType == "CML":
         return gen_cml_inp_subckt(kpn)
 
-
-def convert_sci_to_eng(number):
-    '''Function converts scientific notation to engineering notation'''
-    # Use Hpspice to convert
-    if os.name == 'nt':
-        number = os.popen("C:/cygwin/bin/bash.exe --login -i -c \"/cygdrive/c/es/roq/bin/hpspice.exe -s -c '"+str(number)+"'\"").read()
-    else:
-        number = os.popen("C:/cygwin/bin/bash.exe --login -i -c \"/cygdrive/c/es/roq/bin/hpspice.exe -s -c '"+str(number)+"'\" 2>/dev/null").read()
-    number = number.strip(" \n")
-    return number
 
 def convert_eng_to_sci(number):
     '''Function converts engineering notation to scientific notation'''
